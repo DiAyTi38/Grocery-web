@@ -1,0 +1,15 @@
+services:
+  mysql-db:
+    image: mysql:8.0
+    container_name: grocery_mysql
+    environment:
+      MYSQL_DATABASE: smart_grocery
+      MYSQL_ROOT_PASSWORD: root
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    command: --default-authentication-plugin=mysql_native_password
+
+volumes:
+  mysql_data:
