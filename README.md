@@ -31,7 +31,8 @@ Môi trường Backend đã được tự động hóa. Không ai được phép
 3. Chạy file `GroceryBackendApplication.java`.
 
 🚨 **LƯU Ý CỰC KỲ QUAN TRỌNG VỀ DATABASE:**
-Hệ thống sử dụng **Flyway Migration**. Ngay khi Spring Boot khởi động, nó sẽ tự động chạy các file `.sql` trong thư mục `backend/src/main/resources/db/migration/` để **tự tạo bảng**. 
+Hệ thống sử dụng **Flyway Migration**. Ngay khi Spring Boot khởi động, nó sẽ tự động chạy các file `.sql` trong thư mục `backend/src/main/resources/db/migration/` để **tự tạo bảng**.
+- Migration `V10__insert_sample_data.sql` thêm dữ liệu mẫu vào các bảng để kiểm tra local. Migration chỉ chạy một lần trên mỗi database; tài khoản demo bị vô hiệu hóa và không dùng cho production.
 - **TUYỆT ĐỐI KHÔNG** vào database để tạo hay sửa bảng bằng tay.
 - Khi cần thêm cột hay tạo bảng mới, phải báo cho Đạt (Backend Lead) để viết file `.sql` mới (ví dụ `V2__add_table.sql`). Không được sửa nội dung file `V1` cũ sau khi nó đã được chạy.
 

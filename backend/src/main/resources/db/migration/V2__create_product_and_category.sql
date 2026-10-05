@@ -1,0 +1,31 @@
+-- V2__create_product_and_category.sql
+
+CREATE TABLE category (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP
+);
+
+CREATE TABLE product (
+    id BIGINT AUTO_INCREMENT PRIMARY KEY,
+    category_id BIGINT NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    description TEXT,
+    price DECIMAL(10,2) NOT NULL DEFAULT 0.00,
+    stock INT NOT NULL DEFAULT 0,
+    unit VARCHAR(20),
+    image_url VARCHAR(255),
+    status ENUM('ACTIVE', 'INACTIVE') NOT NULL DEFAULT 'ACTIVE',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_product_category
+        FOREIGN KEY (category_id)
+        REFERENCES category(id)
+        ON UPDATE CASCADE
+        ON DELETE RESTRICT
+);
