@@ -66,3 +66,24 @@
   3. **Cập nhật trạng thái (`PATCH /api/users/{id}/status`):**
      - Body: `{ "enabled": true | false }` để vô hiệu hóa hoặc kích hoạt lại tài khoản.
      - Admin không thể đổi trạng thái của chính mình.
+
+## Luồng 4: Quản lý Giỏ hàng (Cart API) - Đang triển khai
+- **Trạng thái:** Đang triển khai (Task BE-04)
+- **Mô tả:** Chức năng cho phép User thêm/sửa/xóa sản phẩm trong giỏ hàng.
+- **Thành phần:**
+  - `Cart`, `CartItem` Entities.
+  - `CartRepository`, `CartItemRepository`.
+  - `CartService`: Xử lý thêm vào giỏ, cộng dồn số lượng, tính tổng.
+  - `CartController`: Expose các REST endpoints `/api/cart`.
+- **Bảo mật:** Tất cả endpoints yêu cầu xác thực (`hasRole('USER')` hoặc `authenticated()`). Lấy ID User từ JWT (thông qua `Authentication.getName()`) để tránh IDOR.
+
+## Luồng 5: Đặt Hàng & Checkout (Order API) - Đang triển khai
+- **Trạng thái:** Đang triển khai (Task BE-05)
+- **Mô tả:** Luồng checkout cơ bản (Không tích hợp cổng thanh toán phức tạp).
+- **Thành phần:**
+  - `Order`, `OrderItem`, `PurchaseHistory` Entities.
+  - `OrderService`: Xử lý chốt đơn, trừ kho (Inventory), xóa giỏ hàng (Cart).
+  - `OrderController`: REST endpoints `/api/orders`.
+- **Luồng:**
+  - `POST /api/orders/checkout`: User chốt đơn -> backend trừ tồn kho -> xóa cart -> trả về Order mới.
+  - `GET /api/orders`: Xem danh sách đơn đã đặt.
