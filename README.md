@@ -19,11 +19,22 @@ Môi trường Backend đã được tự động hóa. Không ai được phép
 ### Bước 1: Khởi động Database bằng Docker
 1. Mở phần mềm **Docker Desktop** trên máy tính của bạn và đợi nó khởi động xong.
 2. Mở Terminal (hoặc Command Prompt/Git Bash) tại thư mục `backend`.
-3. Gõ lệnh sau để tạo và chạy Database:
+3. Sao chép file cấu hình local và thay đổi mật khẩu trước lần chạy đầu tiên:
    ```bash
-   docker compose up -d
+   cp .env.example .env
    ```
-   *Giải thích: Lệnh này sẽ tải MySQL 8.0, tự động tạo database `smart_grocery`, thiết lập tài khoản `root` và mật khẩu `root` ở cổng `3306`. Dữ liệu sẽ không bị mất khi tắt máy tính.*
+4. Gõ lệnh sau để tạo và chạy MySQL cùng Backend:
+   ```bash
+   docker compose up --build -d
+   ```
+   *Giải thích: Lệnh này tạo MySQL 8.0, database `smart_grocery`, tài khoản ứng dụng từ `.env`, rồi chỉ khởi động Backend sau khi MySQL healthy. Dữ liệu được lưu trong Docker volume.*
+
+Kiểm tra trạng thái service:
+
+```bash
+docker compose ps
+docker compose logs -f backend
+```
 
 ### Bước 2: Chạy Backend (Spring Boot)
 1. Mở thư mục `backend` bằng IDE của bạn.
@@ -31,7 +42,7 @@ Môi trường Backend đã được tự động hóa. Không ai được phép
 3. Chạy file `GroceryBackendApplication.java`.
 
 🚨 **LƯU Ý CỰC KỲ QUAN TRỌNG VỀ DATABASE:**
-Hệ thống sử dụng **Flyway Migration**. Ngay khi Spring Boot khởi động, nó sẽ tự động chạy các file `.sql` trong thư mục `backend/src/main/resources/db/migration/` để **tự tạo bảng**. 
+Hệ thống sử dụng **Flyway Migration**. Ngay khi Spring Boot khởi động, nó sẽ tự động chạy các file `.sql` trong thư mục `backend/src/main/resources/db/migration/` để **tự tạo bảng**. Docker MySQL không chứa script tạo schema riêng.
 - **TUYỆT ĐỐI KHÔNG** vào database để tạo hay sửa bảng bằng tay.
 - Khi cần thêm cột hay tạo bảng mới, phải báo cho Đạt (Backend Lead) để viết file `.sql` mới (ví dụ `V2__add_table.sql`). Không được sửa nội dung file `V1` cũ sau khi nó đã được chạy.
 
@@ -58,8 +69,8 @@ Toàn bộ team phải tuân thủ quy tắc chia nhánh (branch) sau để trá
 ## 🐛 Khắc phục sự cố thường gặp (Troubleshooting)
 
 - **Lỗi "Cannot connect to database":** 
-  👉 Chắc chắn Docker Desktop đang mở. Mở terminal gõ `docker ps` để kiểm tra xem container `grocery_mysql` có đang chạy hay không.
+  👉 Chắc chắn Docker Desktop đang mở. Chạy `docker compose ps` tại thư mục `backend` để kiểm tra `mysql-db` phải ở trạng thái `healthy`.
 - **Lỗi Flyway Checksum Mismatch:** 
-  👉 Do bạn đã "lỡ tay" sửa nội dung một file `.sql` đã được chạy trước đó. Giải pháp tạm thời (cho local): Xóa container Docker và volume (`docker compose down -v`), sau đó chạy lại lệnh `up -d` để khởi tạo lại DB từ đầu.
+  👉 Do bạn đã "lỡ tay" sửa nội dung một file `.sql` đã được chạy trước đó. Chỉ dùng cho local, sau khi đã chấp nhận xóa dữ liệu: `docker compose down -v`, rồi chạy lại `docker compose up --build -d`.
 - **Lỗi cổng 3306 hoặc 8080 đã được sử dụng:**
   👉 Tắt các phần mềm đang chiếm dụng cổng (như XAMPP, Skype, hoặc một project Spring Boot khác đang bật).
