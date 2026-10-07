@@ -49,7 +49,11 @@ def predict(request: PredictionRequest):
                 detail="Khách hàng cần ít nhất 2 lần mua sản phẩm này."
             )
 
-        result = predict_next_purchase(purchases)
+        result = predict_next_purchase(
+            purchases,
+            category_type=request.category_type,
+            reminder_interval_days=request.reminder_interval_days
+        )
 
         return PredictionResponse(
             user_id=request.user_id,

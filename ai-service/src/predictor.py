@@ -1,39 +1,50 @@
 import os
-import joblib
-
 from datetime import timedelta
 
+import joblib
 
-# Đường dẫn tới model
+
 MODEL_PATH = os.path.join(
     os.path.dirname(os.path.dirname(__file__)),
     "models",
-    "purchase_model.joblib"
+    "purchase_model.joblib",
 )
+
+FEATURES = [
+    "purchase_count",
+    "average_interval",
+    "last_interval",
+    "average_quantity",
+    "last_quantity",
+    "category_type",
+    "reminder_interval_days",
+]
+
+CATEGORY_TYPE_MAP = {
+    "FOOD": 0,
+    "COSMETIC": 1,
+    "CONSUMER": 2,
+}
 
 model = joblib.load(MODEL_PATH)
 
 
-def predict_next_purchase(purchases):
-
+def predict_next_purchase(
+    purchases,
+    category_type="FOOD",
+    reminder_interval_days=7,
+):
     if len(purchases) < 2:
-        raise ValueError(
-            "Cần ít nhất 2 lần mua để dự đoán."
-        )
+        raise ValueError("Cần ít nhất 2 lần mua để dự đoán.")
 
     purchases = sorted(
         purchases,
         key=lambda x: x.purchase_date
     )
 
-    # =========================
-    # TÍNH CÁC FEATURE
-    # =========================
-
     intervals = []
 
     for i in range(1, len(purchases)):
-
         days = (
             purchases[i].purchase_date
             - purchases[i - 1].purchase_date
@@ -47,70 +58,43 @@ def predict_next_purchase(purchases):
             "Không thể tính khoảng cách giữa các lần mua."
         )
 
-    purchase_count = len(purchases)
-
-    average_interval = sum(intervals) / len(intervals)
-
-    last_interval = intervals[-1]
-
-    last_purchase_date = purchases[-1].purchase_date
-
-    # Tính số ngày từ lần mua cuối tới hôm nay
-    from datetime import date
-
-    days_since_last_purchase = (
-        date.today() - last_purchase_date
-    ).days
-
     quantities = [
-        purchase.quantity
-        for purchase in purchases
+        p.quantity for p in purchases
     ]
 
-    average_quantity = (
-        sum(quantities) / len(quantities)
-    )
+    category_code = category_type.upper()
 
-    last_quantity = quantities[-1]
+    if category_code not in CATEGORY_TYPE_MAP:
+        raise ValueError(
+            f"Category không hợp lệ: {category_type}"
+        )
 
-    # =========================
-    # TẠO INPUT CHO MODEL
-    # =========================
+    category_value = CATEGORY_TYPE_MAP[category_code]
 
     features = [[
-        purchase_count,
-        days_since_last_purchase,
-        average_interval,
-        last_interval,
-        average_quantity,
-        last_quantity
+        len(purchases),
+        sum(intervals) / len(intervals),
+        intervals[-1],
+        sum(quantities) / len(quantities),
+        quantities[-1],
+        category_value,
+        reminder_interval_days,
     ]]
-
-    # =========================
-    # ML PREDICTION
-    # =========================
-
-    predicted_days = model.predict(
-        features
-    )[0]
 
     predicted_days = max(
         1,
-        round(float(predicted_days), 2)
+        round(float(model.predict(features)[0]), 2)
     )
+
+    last_purchase_date = purchases[-1].purchase_date
 
     predicted_date = (
         last_purchase_date
-        + timedelta(
-            days=round(predicted_days)
-        )
+        + timedelta(days=round(predicted_days))
     )
 
     return {
         "predicted_next_date": predicted_date,
         "predicted_days": predicted_days,
-
-        # Đây là điểm ổn định dựa trên độ chính xác
-        # của model, KHÔNG phải xác suất.
-        "confidence": 0.80
+        "confidence": 0.80,
     }
