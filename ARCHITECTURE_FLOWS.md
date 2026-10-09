@@ -67,23 +67,38 @@
      - Body: `{ "enabled": true | false }` để vô hiệu hóa hoặc kích hoạt lại tài khoản.
      - Admin không thể đổi trạng thái của chính mình.
 
-## Luồng 4: Quản lý Giỏ hàng (Cart API) - Đang triển khai
-- **Trạng thái:** Đang triển khai (Task BE-04)
-- **Mô tả:** Chức năng cho phép User thêm/sửa/xóa sản phẩm trong giỏ hàng.
-- **Thành phần:**
-  - `Cart`, `CartItem` Entities.
-  - `CartRepository`, `CartItemRepository`.
-  - `CartService`: Xử lý thêm vào giỏ, cộng dồn số lượng, tính tổng.
-  - `CartController`: Expose các REST endpoints `/api/cart`.
-- **Bảo mật:** Tất cả endpoints yêu cầu xác thực (`hasRole('USER')` hoặc `authenticated()`). Lấy ID User từ JWT (thông qua `Authentication.getName()`) để tránh IDOR.
+## Luồng 4: Quản lý Giỏ hàng (Cart API) (Đã hoàn thành)
+- **Mục tiêu:** Chức năng cho phép User thêm/sửa/xóa sản phẩm trong giỏ hàng.
+- **Thành phần:** `Cart`, `CartItem` Entities.
+- **Bảo mật:** Lấy ID User từ JWT (thông qua `Authentication.getName()`) để tránh IDOR. Tự động cộng dồn số lượng nếu sản phẩm đã có.
 
-## Luồng 5: Đặt Hàng & Checkout (Order API) - Đang triển khai
-- **Trạng thái:** Đang triển khai (Task BE-05)
-- **Mô tả:** Luồng checkout cơ bản (Không tích hợp cổng thanh toán phức tạp).
-- **Thành phần:**
-  - `Order`, `OrderItem`, `PurchaseHistory` Entities.
-  - `OrderService`: Xử lý chốt đơn, trừ kho (Inventory), xóa giỏ hàng (Cart).
-  - `OrderController`: REST endpoints `/api/orders`.
-- **Luồng:**
-  - `POST /api/orders/checkout`: User chốt đơn -> backend trừ tồn kho -> xóa cart -> trả về Order mới.
-  - `GET /api/orders`: Xem danh sách đơn đã đặt.
+## Luồng 5: Đặt Hàng & Checkout (Order API) (Đã hoàn thành)
+- **Mục tiêu:** Chốt đơn hàng từ Giỏ hàng sang Đơn hàng, quản lý tồn kho và lịch sử mua hàng.
+- **Đặc tả logic:** Không tích hợp cổng thanh toán phức tạp (trả tiền mặt khi nhận hàng/thanh toán nội bộ).
+- **Quy trình `@Transactional`:**
+  1. Lấy toàn bộ CartItem của User.
+  2. Kiểm tra tồn kho trong bảng `inventory`. Nếu không đủ -> Rollback, báo lỗi.
+  3. Trừ tồn kho tương ứng.
+  4. Tạo bản ghi bảng `orders` (trạng thái PENDING) và các `order_items`.
+  5. Xóa sạch giỏ hàng.
+
+## Luồng 6: Tích hợp AI Gợi ý mua hàng (AI Service) (Đã hoàn thành)
+- **Mục tiêu:** Gợi ý các sản phẩm đến chu kỳ cần mua tiếp theo (bổ sung kho) hoặc top sản phẩm bán chạy.
+- **Kiến trúc:** Microservices kết hợp.
+  - Java Backend (Port 8080): Chứa Core API, DB MySQL.
+  - Python FastAPI (Port 8000): Chạy Machine Learning Model.
+- **Quy trình:**
+  1. User gọi `POST /api/ai/refresh` (Từ Frontend).
+  2. Java truy vấn toàn bộ lịch sử mua hàng (bảng `purchase_history`), gom nhóm theo sản phẩm. Lọc ra các sản phẩm mua từ 2 lần trở lên.
+  3. Dùng `WebClient` (CompletableFuture) gọi **song song** sang Python API (`/api/ai/predict`) cho từng sản phẩm để tránh nghẽn.
+  4. Lưu kết quả từ Python trả về vào DB (`ai_predictions`) và clear lịch sử cũ.
+- **Fallback (Chống lỗi):** Nếu Python Server sập, hoặc User không đủ data, Java sẽ tự động query TOP 5 sản phẩm bán chạy nhất từ `purchase_history` để trả về (Dạng Recommendation).
+
+## Luồng 7: Khách hàng thân thiết (Loyalty Module) (Đang triển khai)
+- **Mục tiêu:** Tích điểm mua hàng và thăng hạng thành viên.
+- **Thành phần:** `LoyaltyAccount`, `LoyaltyTransaction`.
+- **Bộ quy tắc (Reward Rules):**
+  - **Tích điểm:** 10,000 VNĐ chi tiêu = 1 Điểm.
+  - **Hạng (Tier):** MEMBER (mặc định), SILVER (Đạt tổng chi tiêu 5.000.000đ), GOLD (Đạt 20.000.000đ).
+  - **Quà thăng hạng:** Tặng 50đ khi lên SILVER, 200đ khi lên GOLD.
+- **Cơ chế:** Ví điểm được tự động tạo ngầm (Auto-provision) khi user lần đầu gọi API xem điểm, tránh lỗi null. Điểm và hạng tự động được tính toán dựa trên tổng chi tiêu.
