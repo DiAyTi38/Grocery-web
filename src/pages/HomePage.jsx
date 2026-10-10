@@ -6,19 +6,12 @@ import "../App.css";
 
 const categories = [
   { name: "Tất cả", icon: "🛒" },
-
   { name: "Bánh kẹo", icon: "🍪" },
-
   { name: "Đồ uống", icon: "🥤" },
-
   { name: "Mì & thực phẩm", icon: "🍜" },
-
   { name: "Gia vị", icon: "🧂" },
-
   { name: "Hóa mỹ phẩm", icon: "🧴" },
-
   { name: "Đồ gia dụng", icon: "🧻" },
-
   { name: "Thực phẩm tươi", icon: "🥚" },
 ];
 
@@ -34,7 +27,6 @@ const products = [
     tag: "SALE",
     color: "#fff1df",
   },
-
   {
     id: 2,
     name: "Nước ngọt Coca-Cola",
@@ -46,7 +38,6 @@ const products = [
     tag: "HOT",
     color: "#ffe5e5",
   },
-
   {
     id: 3,
     name: "Mì Hảo Hảo tôm chua cay",
@@ -58,7 +49,6 @@ const products = [
     tag: "HOT",
     color: "#fff0db",
   },
-
   {
     id: 4,
     name: "Dầu ăn thực vật",
@@ -70,7 +60,6 @@ const products = [
     tag: "SALE",
     color: "#fff4d5",
   },
-
   {
     id: 5,
     name: "Sữa tươi tiệt trùng",
@@ -82,7 +71,6 @@ const products = [
     tag: "",
     color: "#e7f5ff",
   },
-
   {
     id: 6,
     name: "Dầu gội dưỡng tóc",
@@ -94,7 +82,6 @@ const products = [
     tag: "SALE",
     color: "#f2eaff",
   },
-
   {
     id: 7,
     name: "Trứng gà tươi",
@@ -106,7 +93,6 @@ const products = [
     tag: "",
     color: "#fff0df",
   },
-
   {
     id: 8,
     name: "Khăn giấy tiện dụng",
@@ -118,7 +104,6 @@ const products = [
     tag: "",
     color: "#e8f8f0",
   },
-
   {
     id: 9,
     name: "Bánh quy bơ",
@@ -130,7 +115,6 @@ const products = [
     tag: "HOT",
     color: "#fff1df",
   },
-
   {
     id: 10,
     name: "Nước suối tinh khiết",
@@ -142,7 +126,6 @@ const products = [
     tag: "",
     color: "#e7f5ff",
   },
-
   {
     id: 11,
     name: "Nước mắm truyền thống",
@@ -154,7 +137,6 @@ const products = [
     tag: "",
     color: "#fff0db",
   },
-
   {
     id: 12,
     name: "Nước rửa chén",
@@ -166,7 +148,6 @@ const products = [
     tag: "SALE",
     color: "#e6f9f2",
   },
-
   {
     id: 13,
     name: "Cà phê hòa tan",
@@ -178,7 +159,6 @@ const products = [
     tag: "",
     color: "#f4e9df",
   },
-
   {
     id: 14,
     name: "Bánh snack phô mai",
@@ -190,7 +170,6 @@ const products = [
     tag: "",
     color: "#fff4d5",
   },
-
   {
     id: 15,
     name: "Gạo thơm",
@@ -202,7 +181,6 @@ const products = [
     tag: "",
     color: "#f5f2e9",
   },
-
   {
     id: 16,
     name: "Cà chua tươi",
@@ -214,7 +192,6 @@ const products = [
     tag: "FRESH",
     color: "#ffe8e6",
   },
-
   {
     id: 17,
     name: "Bàn chải đánh răng",
@@ -226,7 +203,6 @@ const products = [
     tag: "",
     color: "#e8f5ff",
   },
-
   {
     id: 18,
     name: "Nước lau sàn",
@@ -239,30 +215,45 @@ const products = [
     color: "#e8f8f0",
   },
 ];
-
 const money = (value) =>
   new Intl.NumberFormat("vi-VN", {
     style: "currency",
-
     currency: "VND",
-
     maximumFractionDigits: 0,
   }).format(value);
 
 function ProductCard({ product, onAdd, favorite, onFavorite }) {
+  const navigate = useNavigate();
+
+  function handleProductClick() {
+    navigate(`/product/${product.id}`, {
+      state: {
+        product: product,
+      },
+    });
+  }
+
   return (
-    <article className="product-card">
+    <article className="product-card" onClick={handleProductClick}>
       {product.tag && <span className="product-tag">{product.tag}</span>}
 
       <button
         className={`favorite-button ${favorite ? "is-favorite" : ""}`}
-        onClick={() => onFavorite(product.id)}
+        onClick={(event) => {
+          event.stopPropagation();
+          onFavorite(product.id);
+        }}
         aria-label="Yêu thích sản phẩm"
       >
         {favorite ? "♥" : "♡"}
       </button>
 
-      <div className="product-image" style={{ backgroundColor: product.color }}>
+      <div
+        className="product-image"
+        style={{
+          backgroundColor: product.color,
+        }}
+      >
         <span>{product.emoji}</span>
       </div>
 
@@ -274,7 +265,8 @@ function ProductCard({ product, onAdd, favorite, onFavorite }) {
         <p className="product-unit">{product.unit}</p>
 
         <div className="product-rating">
-          <span>★★★★★</span> <small>(24)</small>
+          <span>★★★★★</span>
+          <small>(24)</small>
         </div>
 
         <div className="product-prices">
@@ -283,7 +275,13 @@ function ProductCard({ product, onAdd, favorite, onFavorite }) {
           <del>{money(product.oldPrice)}</del>
         </div>
 
-        <button className="add-button" onClick={() => onAdd(product)}>
+        <button
+          className="add-button"
+          onClick={(event) => {
+            event.stopPropagation();
+            onAdd(product);
+          }}
+        >
           <span>＋</span> Thêm vào giỏ
         </button>
       </div>
@@ -300,18 +298,42 @@ export default function HomePage() {
     navigate("/login", { replace: true });
   }
 
-  const [search, setSearch] = useState("");
+  /*
+   * ============================================================
+   * 2 Ô TÌM KIẾM ĐỘC LẬP
+   * ============================================================
+   *
+   * headerSearch:
+   *   Ô tìm kiếm trên thanh header.
+   *
+   * heroSearch:
+   *   Ô tìm kiếm lớn trong banner.
+   *
+   * activeSearch:
+   *   Từ khóa tìm kiếm đang được áp dụng cho danh sách sản phẩm.
+   *
+   * Vì vậy:
+   * - Nhập ở header KHÔNG làm thay đổi ô hero.
+   * - Nhập ở hero KHÔNG làm thay đổi ô header.
+   * - Chỉ khi bấm nút tìm kiếm thì từ khóa của ô đó mới được áp dụng.
+   */
+
+  const [headerSearch, setHeaderSearch] = useState("");
+  const [heroSearch, setHeroSearch] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
 
   const [category, setCategory] = useState("Tất cả");
 
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState(() => {
+    const savedCart = localStorage.getItem("smart-grocery-cart");
+
+    return savedCart ? JSON.parse(savedCart) : [];
+  });
 
   const [favorites, setFavorites] = useState([]);
-
   const [showCart, setShowCart] = useState(false);
-
   const [showFavorites, setShowFavorites] = useState(false);
-
+  const [showCategories, setShowCategories] = useState(false);
   const [notice, setNotice] = useState("");
 
   const filteredProducts = useMemo(() => {
@@ -320,61 +342,92 @@ export default function HomePage() {
         category === "Tất cả" || product.category === category;
 
       const matchesSearch = product.name
-
         .toLowerCase()
-
-        .includes(search.trim().toLowerCase());
+        .includes(activeSearch.trim().toLowerCase());
 
       const matchesFavorite = !showFavorites || favorites.includes(product.id);
 
       return matchesCategory && matchesSearch && matchesFavorite;
     });
-  }, [category, search, showFavorites, favorites]);
+  }, [category, activeSearch, showFavorites, favorites]);
 
   const featuredProducts = filteredProducts.slice(0, 5);
-
   const dailyProducts = filteredProducts.slice(5, 9);
-
   const bestProducts = filteredProducts.slice(9, 13);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
 
   const cartTotal = cart.reduce(
     (sum, item) => sum + item.price * item.quantity,
-
     0,
   );
+
+  function searchFromHeader() {
+    setActiveSearch(headerSearch);
+
+    setShowFavorites(false);
+
+    document.getElementById("products")?.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function searchFromHero() {
+    setActiveSearch(heroSearch);
+
+    setShowFavorites(false);
+
+    document.getElementById("products")?.scrollIntoView({ behavior: "smooth" });
+  }
 
   function addToCart(product) {
     setCart((current) => {
       const existing = current.find((item) => item.id === product.id);
 
-      if (existing) {
-        return current.map((item) =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + 1 }
-            : item,
-        );
-      }
+      const newCart = existing
+        ? current.map((item) =>
+            item.id === product.id
+              ? {
+                  ...item,
+                  quantity: item.quantity + 1,
+                }
+              : item,
+          )
+        : [
+            ...current,
+            {
+              ...product,
+              quantity: 1,
+            },
+          ];
 
-      return [...current, { ...product, quantity: 1 }];
+      localStorage.setItem("smart-grocery-cart", JSON.stringify(newCart));
+
+      return newCart;
     });
 
     setNotice(`Đã thêm "${product.name}" vào giỏ hàng`);
 
-    window.setTimeout(() => setNotice(""), 2200);
+    window.setTimeout(() => {
+      setNotice("");
+    }, 2200);
   }
 
   function changeQuantity(id, amount) {
-    setCart((current) =>
-      current
-
+    setCart((current) => {
+      const newCart = current
         .map((item) =>
-          item.id === id ? { ...item, quantity: item.quantity + amount } : item,
+          item.id === id
+            ? {
+                ...item,
+                quantity: item.quantity + amount,
+              }
+            : item,
         )
+        .filter((item) => item.quantity > 0);
 
-        .filter((item) => item.quantity > 0),
-    );
+      localStorage.setItem("smart-grocery-cart", JSON.stringify(newCart));
+
+      return newCart;
+    });
   }
 
   function toggleFavorite(id) {
@@ -387,113 +440,105 @@ export default function HomePage() {
 
   function selectCategory(name) {
     setCategory(name);
-
     setShowFavorites(false);
+  }
+
+  function clearSearchAndFilters() {
+    setHeaderSearch("");
+    setHeroSearch("");
+    setActiveSearch("");
+    setShowFavorites(false);
+    setCategory("Tất cả");
   }
 
   return (
     <div className="grocery-app">
+      {/* ======================================================
+          TOP STRIP
+      ====================================================== */}
       <div className="top-strip">
         <div className="container top-strip-inner">
-          <span>🚚 Miễn phí giao hàng cho đơn từ 500.000đ</span>
+          <span className="top-strip-delivery">
+            🚚 Miễn phí giao hàng cho đơn từ 500.000đ
+          </span>
 
-          <span>Hỗ trợ khách hàng: 1233-7777</span>
+          <div className="top-strip-right">
+            {user && (
+              <div className="top-strip-account">
+                <button
+                  type="button"
+                  className="top-strip-user"
+                  onClick={() => navigate("/profile")}
+                  title="Xem trang cá nhân"
+                >
+                  👤 {user.name}
+                </button>
+
+                <span className="top-strip-divider">|</span>
+
+                <button
+                  type="button"
+                  className="top-strip-logout"
+                  onClick={handleLogout}
+                  title="Đăng xuất"
+                >
+                  Đăng xuất
+                </button>
+              </div>
+            )}
+
+            <span className="top-strip-support">
+              Hỗ trợ khách hàng: 1233-7777
+            </span>
+          </div>
         </div>
       </div>
 
+      {/* ======================================================
+          HEADER
+      ====================================================== */}
       <header className="main-header container">
         <a className="brand" href="#home" aria-label="Smart Grocery">
           <span className="brand-icon">🛒</span>
 
           <span>
             <strong>Smart Grocery</strong>
-
             <small>GROCERY STORE</small>
           </span>
         </a>
 
+        {/* SEARCH HEADER - ĐỘC LẬP */}
         <div className="search-box">
-          <select
-            value={category}
-            onChange={(event) => selectCategory(event.target.value)}
-            aria-label="Danh mục tìm kiếm"
-          >
-            {categories.map((item) => (
-              <option key={item.name} value={item.name}>
-                {item.name}
-              </option>
-            ))}
-          </select>
-
           <input
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            value={headerSearch}
+            onChange={(event) => setHeaderSearch(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Enter") {
+                searchFromHeader();
+              }
+            }}
             placeholder="Tìm bánh kẹo, đồ uống, mì..."
+            aria-label="Tìm kiếm sản phẩm trên header"
           />
 
           <button
+            type="button"
             aria-label="Tìm kiếm"
-            onClick={() =>
-              document
-
-                .getElementById("products")
-
-                ?.scrollIntoView({ behavior: "smooth" })
-            }
+            onClick={searchFromHeader}
           >
             <span>⌕</span>
           </button>
         </div>
 
         <div className="header-actions">
-          {user && (
-            <div
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "8px",
-                marginRight: "8px",
-              }}
-            >
-              <span
-                style={{
-                  fontSize: "13px",
-                  fontWeight: 700,
-                  color: "#183d36",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                👤 {user.name}
-              </span>
-
-              <button
-                type="button"
-                onClick={handleLogout}
-                style={{
-                  border: "1px solid #e7eeea",
-                  background: "#ffffff",
-                  color: "#08784f",
-                  borderRadius: "10px",
-                  padding: "9px 12px",
-                  fontWeight: 700,
-                  cursor: "pointer",
-                }}
-              >
-                Đăng xuất
-              </button>
-            </div>
-          )}
-
           <button
             className={`header-action ${showFavorites ? "action-active" : ""}`}
             onClick={() => {
               setShowFavorites((value) => !value);
-
               setShowCart(false);
             }}
           >
             <span>♡</span>
-
             <small>Yêu thích</small>
           </button>
 
@@ -501,43 +546,61 @@ export default function HomePage() {
             className="header-action cart-action"
             onClick={() => {
               setShowCart((value) => !value);
-
               setShowFavorites(false);
             }}
           >
             <span>🛒</span>
-
             <small>Giỏ hàng</small>
-
             <b>{cartCount}</b>
           </button>
         </div>
       </header>
 
+      {/* ======================================================
+          NAVBAR
+      ====================================================== */}
       <nav className="navbar container">
-        <button
-          className="browse-button"
-          onClick={() =>
-            document
+        <div className="category-menu">
+          <button
+            type="button"
+            className={`browse-button ${
+              showCategories ? "browse-button-active" : ""
+            }`}
+            onClick={() => setShowCategories((value) => !value)}
+            aria-expanded={showCategories}
+          >
+            ☰ &nbsp; Tất cả danh mục <span className="category-arrow"></span>
+          </button>
 
-              .getElementById("categories")
+          {showCategories && (
+            <div className="category-dropdown">
+              {categories.map((item) => (
+                <button
+                  type="button"
+                  key={item.name}
+                  className={
+                    category === item.name
+                      ? "category-menu-item active"
+                      : "category-menu-item"
+                  }
+                  onClick={() => {
+                    selectCategory(item.name);
+                    setShowCategories(false);
 
-              ?.scrollIntoView({ behavior: "smooth" })
-          }
-        >
-          ☰ &nbsp; Tất cả danh mục
-        </button>
+                    document
+                      .getElementById("products")
+                      ?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                >
+                  <span>{item.icon}</span>
 
-        <div className="nav-links">
-          <a className="nav-active" href="#home">
-            ⌂ Trang chủ
-          </a>
+                  <span>{item.name}</span>
 
-          <a href="#deals">♧ Ưu đãi hot</a>
-
-          <a href="#featured">♡ Khuyến mãi</a>
-
-          <a href="#products">▣ Sản phẩm mới</a>
+                  {category === item.name && <strong>✓</strong>}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <a className="hotline" href="tel:12337777">
@@ -545,6 +608,9 @@ export default function HomePage() {
         </a>
       </nav>
 
+      {/* ======================================================
+          CART
+      ====================================================== */}
       {showCart && (
         <div className="cart-panel">
           <div className="cart-heading">
@@ -611,7 +677,20 @@ export default function HomePage() {
       )}
 
       <main>
-        <section className="hero container" id="home">
+        {/* ======================================================
+            HERO - FULL WIDTH
+        ====================================================== */}
+        <section
+          className="hero hero-fullwidth"
+          id="home"
+          style={{
+            width: "100%",
+            maxWidth: "none",
+            marginLeft: 0,
+            marginRight: 0,
+            borderRadius: 0,
+          }}
+        >
           <div className="hero-copy">
             <span className="eyebrow">FRESH FOOD, FRESH LIFE</span>
 
@@ -619,38 +698,30 @@ export default function HomePage() {
 
             <p>Tiết kiệm đến 60% cho đơn hàng đầu tiên của bạn.</p>
 
+            {/* SEARCH HERO - HOÀN TOÀN ĐỘC LẬP */}
             <div className="hero-search">
               <input
-                aria-label="Nhập tên sản phẩm"
+                aria-label="Tìm kiếm sản phẩm"
                 placeholder="Bạn đang tìm sản phẩm gì?"
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
+                value={heroSearch}
+                onChange={(event) => setHeroSearch(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    searchFromHero();
+                  }
+                }}
               />
 
-              <button
-                onClick={() =>
-                  document
-
-                    .getElementById("products")
-
-                    ?.scrollIntoView({ behavior: "smooth" })
-                }
-              >
-                Tìm ngay →
+              <button type="button" onClick={searchFromHero}>
+                Tìm ngay
               </button>
             </div>
 
             <a className="hero-cta" href="#categories">
-              Mua sắm ngay →
+              Mua sắm ngay
             </a>
 
-            <div className="hero-dots">
-              <span className="dot-active" />
-
-              <span />
-
-              <span />
-            </div>
+            {/* ĐÃ XÓA 3 DẤU CHẤM */}
           </div>
 
           <div className="hero-visual">
@@ -664,21 +735,13 @@ export default function HomePage() {
 
             <div className="hero-grocery-bag">
               <span>🥬</span>
-
               <span>🥕</span>
-
               <span>🥦</span>
-
               <span>🫑</span>
-
               <span>🍅</span>
-
               <span>🍌</span>
-
               <span>🥚</span>
-
               <span>🥛</span>
-
               <span>🍊</span>
             </div>
 
@@ -690,6 +753,9 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ======================================================
+            CATEGORIES
+        ====================================================== */}
         <section className="section container" id="categories">
           <div className="section-heading">
             <div>
@@ -732,6 +798,9 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ======================================================
+            FEATURED
+        ====================================================== */}
         <section className="section container" id="featured">
           <div className="section-heading">
             <div>
@@ -750,6 +819,12 @@ export default function HomePage() {
 
           {showFavorites && (
             <p className="filter-notice">♡ Đang hiển thị sản phẩm yêu thích</p>
+          )}
+
+          {activeSearch && (
+            <p className="filter-notice">
+              🔎 Kết quả tìm kiếm cho: <strong>"{activeSearch}"</strong>
+            </p>
           )}
 
           {featuredProducts.length ? (
@@ -772,20 +847,16 @@ export default function HomePage() {
 
               <p>Thử tìm với từ khóa khác hoặc chọn danh mục khác.</p>
 
-              <button
-                className="add-button"
-                onClick={() => {
-                  setSearch("");
-
-                  selectCategory("Tất cả");
-                }}
-              >
+              <button className="add-button" onClick={clearSearchAndFilters}>
                 Xóa bộ lọc
               </button>
             </div>
           )}
         </section>
 
+        {/* ======================================================
+            PROMO
+        ====================================================== */}
         <section className="promo-grid container" id="deals">
           <div className="promo-card promo-delivery">
             <div className="promo-copy">
@@ -820,6 +891,9 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ======================================================
+            PRODUCTS
+        ====================================================== */}
         <section className="section container" id="products">
           <div className="section-heading">
             <div>
@@ -842,7 +916,7 @@ export default function HomePage() {
                     className={category === item ? "filter-active" : ""}
                     onClick={() => selectCategory(item)}
                   >
-                    {item === "Tất cả" ? "Tất cả" : item}
+                    {item}
                   </button>
                 ),
               )}
@@ -869,22 +943,16 @@ export default function HomePage() {
 
               <p>Hãy thử từ khóa khác hoặc bỏ bộ lọc yêu thích.</p>
 
-              <button
-                className="add-button"
-                onClick={() => {
-                  setSearch("");
-
-                  setShowFavorites(false);
-
-                  setCategory("Tất cả");
-                }}
-              >
+              <button className="add-button" onClick={clearSearchAndFilters}>
                 Xem tất cả sản phẩm
               </button>
             </div>
           )}
         </section>
 
+        {/* ======================================================
+            SUGGESTIONS
+        ====================================================== */}
         <section className="section container">
           <div className="section-heading">
             <div>
@@ -909,6 +977,9 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ======================================================
+            APP BANNER
+        ====================================================== */}
         <section className="app-banner">
           <div className="container app-banner-inner">
             <div>
@@ -962,6 +1033,9 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* ======================================================
+            BENEFITS
+        ====================================================== */}
         <section className="benefits container">
           <div className="benefit">
             <span>🏷️</span>
@@ -1001,6 +1075,9 @@ export default function HomePage() {
         </section>
       </main>
 
+      {/* ======================================================
+          FOOTER
+      ====================================================== */}
       <footer className="footer" id="footer">
         <div className="container footer-main">
           <div className="footer-about">
@@ -1022,7 +1099,7 @@ export default function HomePage() {
 
             <small>☎ 1233-7777</small>
 
-            <small>✉ support\@smartgrocery.vn</small>
+            <small>✉ support@smartgrocery.vn</small>
           </div>
 
           <div className="footer-column">
@@ -1083,9 +1160,15 @@ export default function HomePage() {
         </div>
       </footer>
 
+      {/* ======================================================
+          TOAST
+      ====================================================== */}
       {notice && (
         <div className="toast-message" role="status">
-          <span>✓</span> {notice}
+          <span>✓</span>
+
+          {notice}
+
           <button onClick={() => setNotice("")}>✕</button>
         </div>
       )}

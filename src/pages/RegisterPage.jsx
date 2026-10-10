@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 
@@ -9,190 +8,167 @@ export default function RegisterPage() {
   const { register } = useAuth();
 
   const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] =
-    useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
 
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-
     setError("");
 
-    // Kiểm tra bỏ trống
     if (
       !name.trim() ||
+      !username.trim() ||
       !email.trim() ||
       !password ||
       !confirmPassword
     ) {
-      setError(
-        "Vui lòng nhập đầy đủ thông tin."
-      );
+      setError("Vui lòng nhập đầy đủ thông tin.");
       return;
     }
 
-    // Kiểm tra độ dài mật khẩu
+    if (username.trim().length < 3) {
+      setError("Tên đăng nhập phải có ít nhất 3 ký tự.");
+      return;
+    }
+
     if (password.length < 6) {
-      setError(
-        "Mật khẩu phải có ít nhất 6 ký tự."
-      );
+      setError("Mật khẩu phải có ít nhất 6 ký tự.");
       return;
     }
 
-    // Kiểm tra mật khẩu xác nhận
     if (password !== confirmPassword) {
-      setError(
-        "Mật khẩu xác nhận không khớp."
-      );
+      setError("Mật khẩu xác nhận không khớp.");
       return;
     }
 
-    // Gọi chức năng đăng ký
-    const result = register(
-      name,
-      email,
-      password
-    );
+    setLoading(true);
 
-    // Đăng ký thất bại
-    if (!result.success) {
-      setError(result.message);
-      return;
+    try {
+      const result = await register(name, email, password, username);
+
+      if (!result.success) {
+        setError(result.message);
+        return;
+      }
+
+      navigate("/login", {
+        replace: true,
+        state: {
+          message: "Đăng ký thành công! Hãy đăng nhập để tiếp tục.",
+        },
+      });
+    } catch {
+      setError("Không thể đăng ký. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
     }
-
-    // Đăng ký thành công
-    navigate("/login", {
-      replace: true,
-    });
   }
 
   return (
     <div className="auth-page">
       <div className="auth-card">
-
-        {/* Logo */}
         <Link to="/login" className="auth-brand">
           🛒 Smart Grocery
         </Link>
 
-        {/* Tiêu đề */}
         <div className="auth-heading">
-          <span className="auth-eyebrow">
-            CREATE ACCOUNT
-          </span>
+          <span className="auth-eyebrow">CREATE ACCOUNT</span>
 
           <h1>Đăng ký</h1>
 
           <p>
-            Tạo tài khoản Smart Grocery để bắt đầu
-            mua sắm các sản phẩm yêu thích.
+            Tạo tài khoản Smart Grocery để bắt đầu mua sắm các sản phẩm yêu
+            thích.
           </p>
         </div>
 
-        {/* Form */}
-        <form
-          className="auth-form"
-          onSubmit={handleSubmit}
-        >
-          {/* Họ tên */}
-          <label htmlFor="register-name">
-            Họ và tên
-          </label>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label htmlFor="register-name">Họ và tên</label>
 
           <input
             id="register-name"
             type="text"
             placeholder="Nhập họ và tên"
             value={name}
-            onChange={(event) =>
-              setName(event.target.value)
-            }
+            onChange={(event) => setName(event.target.value)}
             autoComplete="name"
+            required
           />
 
-          {/* Email */}
-          <label htmlFor="register-email">
-            Email
-          </label>
+          <label htmlFor="register-username">Tên đăng nhập</label>
+
+          <input
+            id="register-username"
+            type="text"
+            placeholder="Ví dụ: cuong123"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            autoComplete="username"
+            minLength={3}
+            maxLength={50}
+            required
+          />
+
+          <label htmlFor="register-email">Email</label>
 
           <input
             id="register-email"
             type="email"
             placeholder="Nhập email"
             value={email}
-            onChange={(event) =>
-              setEmail(event.target.value)
-            }
+            onChange={(event) => setEmail(event.target.value)}
             autoComplete="email"
+            required
           />
 
-          {/* Mật khẩu */}
-          <label htmlFor="register-password">
-            Mật khẩu
-          </label>
+          <label htmlFor="register-password">Mật khẩu</label>
 
           <input
             id="register-password"
             type="password"
             placeholder="Tạo mật khẩu"
             value={password}
-            onChange={(event) =>
-              setPassword(event.target.value)
-            }
+            onChange={(event) => setPassword(event.target.value)}
             autoComplete="new-password"
+            minLength={6}
+            required
           />
 
-          {/* Xác nhận mật khẩu */}
-          <label htmlFor="register-confirm-password">
-            Xác nhận mật khẩu
-          </label>
+          <label htmlFor="register-confirm-password">Xác nhận mật khẩu</label>
 
           <input
             id="register-confirm-password"
             type="password"
             placeholder="Nhập lại mật khẩu"
             value={confirmPassword}
-            onChange={(event) =>
-              setConfirmPassword(event.target.value)
-            }
+            onChange={(event) => setConfirmPassword(event.target.value)}
             autoComplete="new-password"
+            required
           />
 
-          {/* Lỗi */}
-          {error && (
-            <div className="auth-error">
-              {error}
-            </div>
-          )}
+          {error && <div className="auth-error">{error}</div>}
 
-          {/* Nút đăng ký */}
           <button
             type="submit"
             className="auth-primary auth-submit"
+            disabled={loading}
           >
-            Tạo tài khoản
+            {loading ? "Đang tạo tài khoản..." : "Tạo tài khoản"}
           </button>
         </form>
 
-        {/* Đăng nhập */}
         <div className="auth-switch">
-          Đã có tài khoản?{" "}
-          <Link to="/login">
-            Đăng nhập
-          </Link>
+          Đã có tài khoản? <Link to="/login">Đăng nhập</Link>
         </div>
 
-        {/* Quay lại */}
-        <Link
-          to="/login"
-          className="back-home"
-        >
+        <Link to="/login" className="back-home">
           ← Quay lại đăng nhập
         </Link>
-
       </div>
     </div>
   );

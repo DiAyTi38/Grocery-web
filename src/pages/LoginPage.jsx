@@ -1,147 +1,110 @@
-
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-
 import { useAuth } from "../context/AuthContext";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuth();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
-
     setError("");
 
-    // Kiểm tra dữ liệu
-    if (!email.trim() || !password) {
-      setError("Vui lòng nhập email và mật khẩu.");
+    if (!username.trim() || !password) {
+      setError("Vui lòng nhập tên đăng nhập và mật khẩu.");
       return;
     }
 
-    // Gọi chức năng đăng nhập từ AuthContext
-    const result = login(email, password);
+    setLoading(true);
 
-    // Đăng nhập thất bại
-    if (!result.success) {
-      setError(result.message);
-      return;
+    try {
+      const result = await login(username, password);
+
+      if (!result.success) {
+        setError(result.message);
+        return;
+      }
+
+      navigate("/", { replace: true });
+    } finally {
+      setLoading(false);
     }
-
-    // Đăng nhập thành công
-    navigate("/", { replace: true });
   }
 
   return (
     <div className="auth-page">
       <div className="auth-card">
-
-        {/* Logo */}
         <Link to="/login" className="auth-brand">
           🛒 Smart Grocery
         </Link>
 
-        {/* Tiêu đề */}
         <div className="auth-heading">
-          <span className="auth-eyebrow">
-            GROCERY STORE
-          </span>
+          <span className="auth-eyebrow">GROCERY STORE</span>
 
           <h1>Đăng nhập</h1>
 
           <p>
-            Chào mừng bạn quay lại Smart Grocery.
-            Đăng nhập để tiếp tục mua sắm.
+            Chào mừng bạn quay lại Smart Grocery. Đăng nhập để tiếp tục mua sắm.
           </p>
         </div>
 
-        {/* Form */}
-        <form
-          className="auth-form"
-          onSubmit={handleSubmit}
-        >
-          {/* Email */}
-          <label htmlFor="login-email">
-            Email
-          </label>
+        <form className="auth-form" onSubmit={handleSubmit}>
+          <label htmlFor="login-username">Tên đăng nhập</label>
 
           <input
-            id="login-email"
-            type="email"
-            placeholder="Nhập email của bạn"
-            value={email}
-            onChange={(event) =>
-              setEmail(event.target.value)
-            }
-            autoComplete="email"
+            id="login-username"
+            type="text"
+            placeholder="Nhập tên đăng nhập"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            autoComplete="username"
+            required
           />
 
-          {/* Mật khẩu */}
-          <label htmlFor="login-password">
-            Mật khẩu
-          </label>
+          <label htmlFor="login-password">Mật khẩu</label>
 
           <input
             id="login-password"
             type="password"
             placeholder="Nhập mật khẩu"
             value={password}
-            onChange={(event) =>
-              setPassword(event.target.value)
-            }
+            onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"
+            required
           />
 
-          {/* Quên mật khẩu */}
-          <div style={{ textAlign: "right" }}>
-            <Link
-              to="/forgot-password"
-              style={{
-                color: "#08a66a",
-                fontSize: "12px",
-                fontWeight: 700,
-              }}
-            >
-              Quên mật khẩu?
-            </Link>
+          <div className="login-forgot">
+            <Link to="/forgot-password">Quên mật khẩu?</Link>
           </div>
 
-          {/* Thông báo lỗi */}
-          {error && (
-            <div className="auth-error">
-              {error}
-            </div>
-          )}
+          {error && <div className="auth-error">{error}</div>}
 
-          {/* Nút đăng nhập */}
           <button
             type="submit"
             className="auth-primary auth-submit"
+            disabled={loading}
           >
-            Đăng nhập
+            {loading ? "Đang đăng nhập..." : "Đăng nhập"}
           </button>
         </form>
 
-        {/* Đăng ký */}
         <div className="auth-switch">
-          Chưa có tài khoản?{" "}
-          <Link to="/register">
-            Đăng ký ngay
-          </Link>
+          <span>Chưa có tài khoản?</span>
+          <Link to="/register">Đăng ký ngay</Link>
         </div>
 
-        {/* Quay lại */}
-        <Link
-          to="/"
-          className="back-home"
+        <button
+          type="button"
+          className="admin-login-link"
+          onClick={() => navigate("/admin/login")}
         >
-          ← Quay lại trang chủ
-        </Link>
-
+          🔐 Đăng nhập dành cho Admin
+        </button>
       </div>
     </div>
   );
