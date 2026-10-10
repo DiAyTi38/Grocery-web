@@ -44,7 +44,7 @@ export default function LoginPage() {
         </Link>
 
         <div className="auth-heading">
-          <span className="auth-eyebrow">GROCERY STORE</span>
+          <span className="auth-eyebrow"></span>
 
           <h1>Đăng nhập</h1>
 

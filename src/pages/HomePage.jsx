@@ -752,7 +752,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
         {/* ======================================================
             CATEGORIES
         ====================================================== */}
@@ -797,7 +796,6 @@ export default function HomePage() {
             ))}
           </div>
         </section>
-
         {/* ======================================================
             FEATURED
         ====================================================== */}
@@ -853,7 +851,6 @@ export default function HomePage() {
             </div>
           )}
         </section>
-
         {/* ======================================================
             PROMO
         ====================================================== */}
@@ -892,8 +889,8 @@ export default function HomePage() {
         </section>
 
         {/* ======================================================
-            PRODUCTS
-        ====================================================== */}
+    PRODUCTS
+====================================================== */}
         <section className="section container" id="products">
           <div className="section-heading">
             <div>
@@ -913,7 +910,10 @@ export default function HomePage() {
                 (item) => (
                   <button
                     key={item}
-                    className={category === item ? "filter-active" : ""}
+                    type="button"
+                    className={`filter-btn ${
+                      category === item ? "filter-active" : ""
+                    }`}
                     onClick={() => selectCategory(item)}
                   >
                     {item}
@@ -943,7 +943,11 @@ export default function HomePage() {
 
               <p>Hãy thử từ khóa khác hoặc bỏ bộ lọc yêu thích.</p>
 
-              <button className="add-button" onClick={clearSearchAndFilters}>
+              <button
+                className="add-button"
+                type="button"
+                onClick={clearSearchAndFilters}
+              >
                 Xem tất cả sản phẩm
               </button>
             </div>
@@ -976,7 +980,6 @@ export default function HomePage() {
             )}
           </div>
         </section>
-
         {/* ======================================================
             APP BANNER
         ====================================================== */}
@@ -1032,7 +1035,6 @@ export default function HomePage() {
             </div>
           </div>
         </section>
-
         {/* ======================================================
             BENEFITS
         ====================================================== */}

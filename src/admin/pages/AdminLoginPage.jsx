@@ -4,7 +4,7 @@ import { Link, useNavigate } from "react-router-dom";
 function AdminLoginPage() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
 
@@ -14,15 +14,22 @@ function AdminLoginPage() {
     setError("");
 
     // Tài khoản Admin demo
+    const ADMIN_USERNAME = "admin";
     const ADMIN_EMAIL = "admin@smartgrocery.com";
     const ADMIN_PASSWORD = "admin123";
 
-    if (email !== ADMIN_EMAIL || password !== ADMIN_PASSWORD) {
-      setError("Email hoặc mật khẩu Admin không chính xác.");
+    // Cho phép đăng nhập bằng username hoặc email
+    const loginInput = username.trim().toLowerCase();
+
+    const isValidAccount =
+      loginInput === ADMIN_USERNAME || loginInput === ADMIN_EMAIL;
+
+    if (!isValidAccount || password !== ADMIN_PASSWORD) {
+      setError("Username/email hoặc mật khẩu Admin không chính xác.");
       return;
     }
 
-    // Lưu trạng thái đăng nhập Admin
+    // Lưu trạng thái đăng nhập Admin trong phiên hiện tại
     sessionStorage.setItem("smart-grocery-admin", "true");
 
     navigate("/admin");
@@ -31,7 +38,7 @@ function AdminLoginPage() {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        {/* LOGO - GIỐNG TRANG ĐĂNG NHẬP KHÁCH HÀNG */}
+        {/* LOGO */}
         <Link to="/admin/login" className="auth-brand">
           🛒 Smart Grocery
         </Link>
@@ -47,15 +54,15 @@ function AdminLoginPage() {
 
         {/* FORM */}
         <form className="auth-form" onSubmit={handleLogin}>
-          <label htmlFor="admin-email">Email Admin</label>
+          <label htmlFor="admin-username">Username hoặc Email Admin</label>
 
           <input
-            id="admin-email"
-            type="email"
-            placeholder="admin@smartgrocery.com"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            autoComplete="email"
+            id="admin-username"
+            type="text"
+            placeholder="Nhập username hoặc email Admin"
+            value={username}
+            onChange={(event) => setUsername(event.target.value)}
+            autoComplete="username"
             required
           />
 

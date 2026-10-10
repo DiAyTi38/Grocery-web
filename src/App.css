@@ -5116,3 +5116,94 @@ select:focus-visible {
   outline: none !important;
   box-shadow: none !important;
 }
+
+/* Thanh danh mục trang chủ Smart Grocery */
+.category-tabs {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin: 20px 0 28px;
+}
+
+.category-tab {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 11px 20px;
+  border: 1px solid #e2e9e4;
+  border-radius: 999px;
+  background: #f5f8f5;
+  color: #254f43;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.2s ease,
+    color 0.2s ease,
+    border-color 0.2s ease,
+    transform 0.2s ease;
+}
+
+.category-tab:hover {
+  background: #e5eee7;
+  border-color: #b8cdbd;
+  transform: translateY(-2px);
+}
+
+.category-tab.active {
+  background: #254f43;
+  border-color: #254f43;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(37, 79, 67, 0.16);
+}
+
+@media (max-width: 600px) {
+  .category-tabs {
+    gap: 8px;
+  }
+
+  .category-tab {
+    padding: 9px 14px;
+    font-size: 13px;
+  }
+}
+.section-filters {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.section-filters .filter-btn {
+  padding: 10px 20px;
+  border: 1px solid #dce7df;
+  border-radius: 25px;
+  background: #f5f8f5;
+  color: #315747;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s ease;
+}
+
+.section-filters .filter-btn:hover {
+  background: #e6efe8;
+}
+
+.section-filters .filter-btn.filter-active {
+  background: #254f43;
+  color: white;
+  border-color: #254f43;
+}
+
+@media (max-width: 600px) {
+  .section-filters {
+    gap: 8px;
+  }
+
+  .section-filters .filter-btn {
+    padding: 8px 13px;
+    font-size: 13px;
+  }
+}
