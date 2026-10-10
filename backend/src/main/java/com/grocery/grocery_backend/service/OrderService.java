@@ -53,7 +53,8 @@ public class OrderService {
 
         for (CartItem cartItem : cart.getItems()) {
             // Check inventory
-            Inventory inventory = inventoryRepository.findByProductId(cartItem.getProduct().getId())
+            // Sử dụng hàm ForUpdate để áp dụng Khóa Bi Quan (Pessimistic Lock)
+            Inventory inventory = inventoryRepository.findByProductIdForUpdate(cartItem.getProduct().getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Inventory missing for product: " + cartItem.getProduct().getName()));
 
             if (inventory.getQuantity() < cartItem.getQuantity()) {
