@@ -12,6 +12,11 @@ import java.util.Optional;
 public interface InventoryRepository extends JpaRepository<Inventory, Long> {
     Optional<Inventory> findByProductId(Long productId);
 
+    // Dùng Pessimistic Lock (Khóa bi quan) để chặn Race Condition khi thanh toán
+    @org.springframework.data.jpa.repository.Lock(jakarta.persistence.LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT i FROM Inventory i WHERE i.product.id = :productId")
+    Optional<Inventory> findByProductIdForUpdate(@org.springframework.data.repository.query.Param("productId") Long productId);
+
     @Query("""
             SELECT i FROM Inventory i
             JOIN FETCH i.product p
