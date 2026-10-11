@@ -1,19 +1,71 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
+import {
+  getProducts,
+  getCategories,
+  getCart,
+  addToCartApi,
+  updateCartItemApi,
+  removeCartItemApi,
+  checkoutOrderApi,
+} from "../services/api";
 import "../App.css";
 
-const categories = [
+const DEFAULT_CATEGORIES = [
   { name: "Tất cả", icon: "🛒" },
-  { name: "Bánh kẹo", icon: "🍪" },
-  { name: "Đồ uống", icon: "🥤" },
-  { name: "Mì & thực phẩm", icon: "🍜" },
-  { name: "Gia vị", icon: "🧂" },
-  { name: "Hóa mỹ phẩm", icon: "🧴" },
-  { name: "Đồ gia dụng", icon: "🧻" },
-  { name: "Thực phẩm tươi", icon: "🥚" },
+  { name: "Rau củ quả sạch", icon: "🥬" },
+  { name: "Thịt - hải sản", icon: "🥩" },
+  { name: "Sữa & trứng", icon: "🥛" },
+  { name: "Đồ khô", icon: "🍚" },
+  { name: "Sắc đẹp", icon: "🧴" },
 ];
+
+function getProductEmoji(name = "", category = "") {
+  const n = String(name || "").toLowerCase();
+  if (n.includes("cải") || n.includes("rau") || n.includes("bắp cải")) return "🥬";
+  if (n.includes("cà chua")) return "🍅";
+  if (n.includes("thịt") || n.includes("heo") || n.includes("bò")) return "🥩";
+  if (n.includes("sữa")) return "🥛";
+  if (n.includes("gạo")) return "🍚";
+  if (n.includes("khoai")) return "🍟";
+  if (n.includes("coca") || n.includes("nước")) return "🥤";
+  if (n.includes("mì")) return "🍜";
+  if (n.includes("trứng")) return "🥚";
+  if (n.includes("dầu")) return "🫒";
+  if (category.includes("Rau")) return "🥦";
+  if (category.includes("Thịt")) return "🍗";
+  if (category.includes("Sữa")) return "🧀";
+  if (category.includes("Khô")) return "🌾";
+  return "🛒";
+}
+
+function getProductColor(category = "") {
+  if (category.includes("Rau")) return "#e8f8f0";
+  if (category.includes("Thịt")) return "#ffe5e5";
+  if (category.includes("Sữa")) return "#e7f5ff";
+  if (category.includes("Khô")) return "#fff4d5";
+  return "#fff0df";
+}
+
+function formatProduct(p) {
+  const categoryName = p.categoryName || "Khác";
+  const stock = p.availableQuantity ?? p.stockQuantity ?? 0;
+  return {
+    id: p.id,
+    name: p.name,
+    category: categoryName,
+    price: Number(p.price) || 0,
+    oldPrice: p.price ? Math.round(Number(p.price) * 1.15) : null,
+    unit: p.unit || "Phần",
+    stock: stock,
+    emoji: getProductEmoji(p.name, categoryName),
+    tag: stock <= 10 ? "SẮP HẾT" : (p.price > 100000 ? "HOT" : "FRESH"),
+    color: getProductColor(categoryName),
+    description: p.description,
+  };
+}
 
 const products = [
   {
@@ -262,7 +314,9 @@ function ProductCard({ product, onAdd, favorite, onFavorite }) {
 
         <h3>{product.name}</h3>
 
-        <p className="product-unit">{product.unit}</p>
+        <p className="product-unit">
+          {product.unit} {product.stock !== undefined ? `• Kho: ${product.stock}` : ""}
+        </p>
 
         <div className="product-rating">
           <span>★★★★★</span>
@@ -272,17 +326,18 @@ function ProductCard({ product, onAdd, favorite, onFavorite }) {
         <div className="product-prices">
           <strong>{money(product.price)}</strong>
 
-          <del>{money(product.oldPrice)}</del>
+          {product.oldPrice ? <del>{money(product.oldPrice)}</del> : null}
         </div>
 
         <button
           className="add-button"
+          disabled={product.stock !== undefined && product.stock <= 0}
           onClick={(event) => {
             event.stopPropagation();
             onAdd(product);
           }}
         >
-          <span>＋</span> Thêm vào giỏ
+          <span>＋</span> {product.stock !== undefined && product.stock <= 0 ? "Hết hàng" : "Thêm vào giỏ"}
         </button>
       </div>
     </article>
@@ -291,44 +346,28 @@ function ProductCard({ product, onAdd, favorite, onFavorite }) {
 
 export default function HomePage() {
   const navigate = useNavigate();
-  const { user, logout } = useAuth();
+  const { user, token, logout } = useAuth();
 
   function handleLogout() {
     logout();
     navigate("/login", { replace: true });
   }
 
-  /*
-   * ============================================================
-   * 2 Ô TÌM KIẾM ĐỘC LẬP
-   * ============================================================
-   *
-   * headerSearch:
-   *   Ô tìm kiếm trên thanh header.
-   *
-   * heroSearch:
-   *   Ô tìm kiếm lớn trong banner.
-   *
-   * activeSearch:
-   *   Từ khóa tìm kiếm đang được áp dụng cho danh sách sản phẩm.
-   *
-   * Vì vậy:
-   * - Nhập ở header KHÔNG làm thay đổi ô hero.
-   * - Nhập ở hero KHÔNG làm thay đổi ô header.
-   * - Chỉ khi bấm nút tìm kiếm thì từ khóa của ô đó mới được áp dụng.
-   */
-
   const [headerSearch, setHeaderSearch] = useState("");
   const [heroSearch, setHeroSearch] = useState("");
   const [activeSearch, setActiveSearch] = useState("");
 
   const [category, setCategory] = useState("Tất cả");
+  const [categoriesList, setCategoriesList] = useState(DEFAULT_CATEGORIES);
 
-  const [cart, setCart] = useState(() => {
-    const savedCart = localStorage.getItem("smart-grocery-cart");
+  // Danh sách sản phẩm từ backend MySQL
+  const [productsList, setProductsList] = useState([]);
+  const [loadingProducts, setLoadingProducts] = useState(true);
 
-    return savedCart ? JSON.parse(savedCart) : [];
-  });
+  // Giỏ hàng thực tế từ backend
+  const [cart, setCart] = useState([]);
+  const [cartTotalAmount, setCartTotalAmount] = useState(0);
+  const [checkingOut, setCheckingOut] = useState(false);
 
   const [favorites, setFavorites] = useState([]);
   const [showCart, setShowCart] = useState(false);
@@ -336,8 +375,89 @@ export default function HomePage() {
   const [showCategories, setShowCategories] = useState(false);
   const [notice, setNotice] = useState("");
 
+  function formatCartItems(cartDto) {
+    if (!cartDto || !cartDto.items) return [];
+    return cartDto.items.map((item) => ({
+      id: item.id, // ID chi tiết giỏ hàng (CartItem) để update/delete
+      productId: item.productId,
+      name: item.productName,
+      price: Number(item.unitPrice),
+      quantity: item.quantity,
+      subtotal: Number(item.subtotal),
+      emoji: getProductEmoji(item.productName),
+    }));
+  }
+
+  // Tải danh mục từ backend
+  const loadCategories = useCallback(async () => {
+    try {
+      const data = await getCategories();
+      if (Array.isArray(data) && data.length > 0) {
+        const mapped = [
+          { name: "Tất cả", icon: "🛒" },
+          ...data.map((c) => ({
+            name: c.name,
+            icon: c.name.includes("Rau")
+              ? "🥬"
+              : c.name.includes("Thịt")
+              ? "🥩"
+              : c.name.includes("Sữa")
+              ? "🥛"
+              : c.name.includes("Khô")
+              ? "🍚"
+              : "🧴",
+          })),
+        ];
+        setCategoriesList(mapped);
+      }
+    } catch (err) {
+      console.warn("Dùng danh mục mặc định:", err);
+    }
+  }, []);
+
+  // Tải sản phẩm từ backend
+  const loadProducts = useCallback(async () => {
+    try {
+      setLoadingProducts(true);
+      const data = await getProducts();
+      if (Array.isArray(data) && data.length > 0) {
+        setProductsList(data.map(formatProduct));
+      }
+    } catch (err) {
+      console.warn("Không tải được sản phẩm từ backend:", err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  }, []);
+
+  // Tải giỏ hàng từ backend
+  const loadCart = useCallback(async () => {
+    if (!token) {
+      setCart([]);
+      setCartTotalAmount(0);
+      return;
+    }
+    try {
+      const cartDto = await getCart(token);
+      setCart(formatCartItems(cartDto));
+      setCartTotalAmount(Number(cartDto?.totalAmount) || 0);
+    } catch (err) {
+      console.warn("Không tải được giỏ hàng:", err);
+    }
+  }, [token]);
+
+  useEffect(() => {
+    loadCategories();
+    loadProducts();
+  }, [loadCategories, loadProducts]);
+
+  useEffect(() => {
+    loadCart();
+  }, [loadCart]);
+
   const filteredProducts = useMemo(() => {
-    return products.filter((product) => {
+    const listToFilter = productsList.length > 0 ? productsList : products;
+    return listToFilter.filter((product) => {
       const matchesCategory =
         category === "Tất cả" || product.category === category;
 
@@ -349,85 +469,95 @@ export default function HomePage() {
 
       return matchesCategory && matchesSearch && matchesFavorite;
     });
-  }, [category, activeSearch, showFavorites, favorites]);
+  }, [productsList, category, activeSearch, showFavorites, favorites]);
 
-  const featuredProducts = filteredProducts.slice(0, 5);
-  const dailyProducts = filteredProducts.slice(5, 9);
-  const bestProducts = filteredProducts.slice(9, 13);
+  const featuredProducts = filteredProducts;
+  const dailyProducts = filteredProducts.slice(0, 4);
+  const bestProducts = filteredProducts.slice(0, 4);
 
   const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
-
-  const cartTotal = cart.reduce(
-    (sum, item) => sum + item.price * item.quantity,
-    0,
-  );
+  const cartTotal =
+    cartTotalAmount ||
+    cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
 
   function searchFromHeader() {
     setActiveSearch(headerSearch);
-
     setShowFavorites(false);
-
     document.getElementById("products")?.scrollIntoView({ behavior: "smooth" });
   }
 
   function searchFromHero() {
     setActiveSearch(heroSearch);
-
     setShowFavorites(false);
-
     document.getElementById("products")?.scrollIntoView({ behavior: "smooth" });
   }
 
-  function addToCart(product) {
-    setCart((current) => {
-      const existing = current.find((item) => item.id === product.id);
+  // Thêm vào giỏ hàng thật qua API Backend
+  async function addToCart(product) {
+    if (!token) {
+      setNotice("Vui lòng đăng nhập để thêm vào giỏ hàng.");
+      return;
+    }
 
-      const newCart = existing
-        ? current.map((item) =>
-            item.id === product.id
-              ? {
-                  ...item,
-                  quantity: item.quantity + 1,
-                }
-              : item,
-          )
-        : [
-            ...current,
-            {
-              ...product,
-              quantity: 1,
-            },
-          ];
-
-      localStorage.setItem("smart-grocery-cart", JSON.stringify(newCart));
-
-      return newCart;
-    });
-
-    setNotice(`Đã thêm "${product.name}" vào giỏ hàng`);
-
-    window.setTimeout(() => {
-      setNotice("");
-    }, 2200);
+    try {
+      const updatedCart = await addToCartApi(token, product.id, 1);
+      setCart(formatCartItems(updatedCart));
+      setCartTotalAmount(Number(updatedCart.totalAmount) || 0);
+      setNotice(`Đã thêm "${product.name}" vào giỏ hàng`);
+      window.setTimeout(() => setNotice(""), 2200);
+    } catch (err) {
+      setNotice(`❌ Không thể thêm vào giỏ: ${err.message}`);
+    }
   }
 
-  function changeQuantity(id, amount) {
-    setCart((current) => {
-      const newCart = current
-        .map((item) =>
-          item.id === id
-            ? {
-                ...item,
-                quantity: item.quantity + amount,
-              }
-            : item,
-        )
-        .filter((item) => item.quantity > 0);
+  // Thay đổi số lượng món trong giỏ hàng qua API
+  async function changeQuantity(cartItem, amount) {
+    if (!token) return;
+    const newQty = cartItem.quantity + amount;
 
-      localStorage.setItem("smart-grocery-cart", JSON.stringify(newCart));
+    try {
+      if (newQty <= 0) {
+        const updatedCart = await removeCartItemApi(token, cartItem.id);
+        setCart(formatCartItems(updatedCart));
+        setCartTotalAmount(Number(updatedCart.totalAmount) || 0);
+      } else {
+        const updatedCart = await updateCartItemApi(token, cartItem.id, newQty);
+        setCart(formatCartItems(updatedCart));
+        setCartTotalAmount(Number(updatedCart.totalAmount) || 0);
+      }
+    } catch (err) {
+      setNotice(`❌ Lỗi cập nhật giỏ hàng: ${err.message}`);
+    }
+  }
 
-      return newCart;
-    });
+  // Đặt hàng thật qua API Checkout (Áp dụng Khóa bi quan trừ kho)
+  async function handleCheckout() {
+    if (!token) {
+      setNotice("Vui lòng đăng nhập để tiến hành đặt hàng.");
+      return;
+    }
+
+    if (cart.length === 0) {
+      setNotice("Giỏ hàng của bạn đang trống.");
+      return;
+    }
+
+    setCheckingOut(true);
+    try {
+      const order = await checkoutOrderApi(token);
+      setCart([]);
+      setCartTotalAmount(0);
+      setShowCart(false);
+      setNotice(
+        `🎉 Đặt hàng thành công! Mã đơn: #${order.id} - ${money(order.totalAmount)}. Kho hàng đã được trừ thành công!`
+      );
+      // Tải lại sản phẩm để cập nhật số lượng tồn kho hiển thị
+      loadProducts();
+    } catch (err) {
+      setNotice(`❌ Đặt hàng thất bại: ${err.message}`);
+    } finally {
+      setCheckingOut(false);
+    }
   }
 
   function toggleFavorite(id) {
@@ -574,7 +704,7 @@ export default function HomePage() {
 
           {showCategories && (
             <div className="category-dropdown">
-              {categories.map((item) => (
+              {categoriesList.map((item) => (
                 <button
                   type="button"
                   key={item.name}
@@ -641,13 +771,13 @@ export default function HomePage() {
                     <span>{money(item.price)}</span>
 
                     <div className="quantity-controls">
-                      <button onClick={() => changeQuantity(item.id, -1)}>
+                      <button onClick={() => changeQuantity(item, -1)}>
                         −
                       </button>
 
                       <span>{item.quantity}</span>
 
-                      <button onClick={() => changeQuantity(item.id, 1)}>
+                      <button onClick={() => changeQuantity(item, 1)}>
                         +
                       </button>
                     </div>
@@ -663,13 +793,10 @@ export default function HomePage() {
 
               <button
                 className="checkout-button"
-                onClick={() =>
-                  setNotice(
-                    "Giỏ hàng đã sẵn sàng! Chức năng đặt hàng cần kết nối backend.",
-                  )
-                }
+                disabled={checkingOut}
+                onClick={handleCheckout}
               >
-                Tiến hành đặt hàng →
+                {checkingOut ? "Đang xử lý đơn hàng..." : "Tiến hành đặt hàng →"}
               </button>
             </>
           )}
@@ -772,7 +899,7 @@ export default function HomePage() {
           </div>
 
           <div className="category-grid">
-            {categories.slice(1).map((item, index) => (
+            {categoriesList.slice(1).map((item, index) => (
               <button
                 key={item.name}
                 className={`category-card ${
