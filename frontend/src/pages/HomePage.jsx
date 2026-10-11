@@ -10,6 +10,8 @@ import {
   updateCartItemApi,
   removeCartItemApi,
   checkoutOrderApi,
+  getAiRecommendationsApi,
+  refreshAiPredictionsApi,
 } from "../services/api";
 import "../App.css";
 
@@ -369,6 +371,10 @@ export default function HomePage() {
   const [cartTotalAmount, setCartTotalAmount] = useState(0);
   const [checkingOut, setCheckingOut] = useState(false);
 
+  // Gợi ý chu kỳ mua lại thông minh từ AI
+  const [aiRecommendations, setAiRecommendations] = useState([]);
+  const [refreshingAi, setRefreshingAi] = useState(false);
+
   const [favorites, setFavorites] = useState([]);
   const [showCart, setShowCart] = useState(false);
   const [showFavorites, setShowFavorites] = useState(false);
@@ -446,6 +452,36 @@ export default function HomePage() {
     }
   }, [token]);
 
+  // Tải dự đoán mua lại bằng AI
+  const loadAiRecommendations = useCallback(async () => {
+    if (!token) return;
+    try {
+      const data = await getAiRecommendationsApi(token);
+      if (Array.isArray(data)) {
+        setAiRecommendations(data);
+      }
+    } catch (err) {
+      console.warn("Không tải được gợi ý AI:", err);
+    }
+  }, [token]);
+
+  async function handleRefreshAi() {
+    if (!token) return;
+    setRefreshingAi(true);
+    try {
+      const data = await refreshAiPredictionsApi(token);
+      if (Array.isArray(data)) {
+        setAiRecommendations(data);
+        setNotice("🤖 Đã làm mới dự đoán AI dựa trên dữ liệu mua hàng mới nhất!");
+        window.setTimeout(() => setNotice(""), 3000);
+      }
+    } catch (err) {
+      setNotice(`❌ Lỗi cập nhật AI: ${err.message}`);
+    } finally {
+      setRefreshingAi(false);
+    }
+  }
+
   useEffect(() => {
     loadCategories();
     loadProducts();
@@ -454,6 +490,10 @@ export default function HomePage() {
   useEffect(() => {
     loadCart();
   }, [loadCart]);
+
+  useEffect(() => {
+    loadAiRecommendations();
+  }, [loadAiRecommendations]);
 
   const filteredProducts = useMemo(() => {
     const listToFilter = productsList.length > 0 ? productsList : products;
@@ -879,6 +919,125 @@ export default function HomePage() {
             </div>
           </div>
         </section>
+
+        {/* ======================================================
+            AI SMART REPLENISHMENT - DỰ ĐOÁN MUA LẠI BẰNG AI
+        ====================================================== */}
+        {aiRecommendations.length > 0 && (
+          <section className="section container" id="ai-replenishment" style={{ marginBottom: "35px" }}>
+            <div className="section-heading">
+              <div>
+                <span className="section-kicker" style={{ color: "#10b981", fontWeight: "700" }}>
+                  🤖 AI THÔNG MINH • CHU KỲ TIÊU DÙNG
+                </span>
+                <h2>Gợi ý mua lại hôm nay</h2>
+                <p style={{ color: "#64748b", fontSize: "14px", marginTop: "4px" }}>
+                  Dựa trên thói quen mua sắm 90 ngày của bạn, AI dự đoán những món đồ này sắp hết cần bổ sung ngay.
+                </p>
+              </div>
+              <button
+                className="text-link"
+                disabled={refreshingAi}
+                onClick={handleRefreshAi}
+                style={{ fontSize: "14px", color: "#10b981", cursor: "pointer", border: "none", background: "none", fontWeight: "600" }}
+              >
+                {refreshingAi ? "⏳ Đang tính toán..." : "🔄 Làm mới dự đoán AI"}
+              </button>
+            </div>
+
+            <div
+              className="ai-recommendations-grid"
+              style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
+                gap: "20px",
+              }}
+            >
+              {aiRecommendations.map((item) => (
+                <div
+                  key={item.productId}
+                  className="ai-card"
+                  style={{
+                    border: "1px solid #e2e8f0",
+                    borderRadius: "16px",
+                    padding: "16px",
+                    background: "#ffffff",
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
+                    display: "flex",
+                    flexDirection: "column",
+                    justifyContent: "space-between",
+                    position: "relative",
+                  }}
+                >
+                  <span
+                    style={{
+                      position: "absolute",
+                      top: "12px",
+                      right: "12px",
+                      background: "#ecfdf5",
+                      color: "#059669",
+                      fontSize: "11px",
+                      fontWeight: "700",
+                      padding: "4px 8px",
+                      borderRadius: "12px",
+                    }}
+                  >
+                    {item.type === "REPLENISHMENT"
+                      ? `Độ tin cậy ${Math.round((item.confidence || 0.8) * 100)}%`
+                      : "Bán chạy"}
+                  </span>
+
+                  <div>
+                    <div style={{ fontSize: "40px", textAlign: "center", margin: "10px 0" }}>
+                      {getProductEmoji(item.productName)}
+                    </div>
+                    <h3 style={{ fontSize: "16px", margin: "0 0 6px", fontWeight: "700" }}>
+                      {item.productName}
+                    </h3>
+                    <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 14px" }}>
+                      {item.predictedDays !== null && item.predictedDays !== undefined ? (
+                        item.predictedDays <= 0 ? (
+                          <span style={{ color: "#ef4444", fontWeight: "700" }}>⚠️ Đã đến lúc mua lại!</span>
+                        ) : (
+                          <span>
+                            Dự kiến mua sau: <b>{Math.round(item.predictedDays)} ngày</b>
+                          </span>
+                        )
+                      ) : (
+                        <span>Dự kiến: {item.predictedNextDate || "Hôm nay"}</span>
+                      )}
+                    </p>
+                  </div>
+
+                  <button
+                    className="add-button"
+                    style={{
+                      width: "100%",
+                      padding: "10px",
+                      borderRadius: "10px",
+                      background: "#10b981",
+                      color: "white",
+                      border: "none",
+                      fontWeight: "700",
+                      cursor: "pointer",
+                    }}
+                    onClick={() => {
+                      const prod =
+                        productsList.find((p) => p.id === item.productId) || {
+                          id: item.productId,
+                          name: item.productName,
+                        };
+                      addToCart(prod);
+                    }}
+                  >
+                    🛒 Mua lại ngay
+                  </button>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
+
         {/* ======================================================
             CATEGORIES
         ====================================================== */}

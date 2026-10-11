@@ -125,3 +125,10 @@ export async function getAiRecommendationsApi(token) {
     headers: { Authorization: `Bearer ${token}` },
   });
 }
+
+export async function refreshAiPredictionsApi(token) {
+  return apiRequest("/ai/refresh", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}

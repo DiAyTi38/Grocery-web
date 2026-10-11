@@ -1,45 +1,44 @@
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useRef, useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
+import {
+  getMyLoyaltyApi,
+  getLoyaltyTransactionsApi,
+  getMyOrdersApi,
+} from "../services/api";
 import "../App.css";
 
-function getMembership(totalSpent) {
-  if (totalSpent >= 5000000) {
+function getMembership(tier = "MEMBER", totalSpend = 0) {
+  const t = String(tier || "MEMBER").toUpperCase();
+  if (t === "GOLD" || totalSpend >= 20000000) {
     return {
-      name: "Kim cương",
-      icon: "💎",
-      className: "diamond",
-      min: 5000000,
-      next: null,
-    };
-  }
-
-  if (totalSpent >= 2000000) {
-    return {
-      name: "Vàng",
+      name: "Vàng (GOLD)",
       icon: "🥇",
       className: "gold",
-      min: 2000000,
-      next: 5000000,
+      min: 20000000,
+      next: null,
+      bonus: "Thưởng +200 điểm",
     };
   }
 
-  if (totalSpent >= 500000) {
+  if (t === "SILVER" || totalSpend >= 5000000) {
     return {
-      name: "Bạc",
+      name: "Bạc (SILVER)",
       icon: "🥈",
       className: "silver",
-      min: 500000,
-      next: 2000000,
+      min: 5000000,
+      next: 20000000,
+      bonus: "Thưởng +50 điểm",
     };
   }
 
   return {
-    name: "Chưa đạt hạng",
+    name: "Thành viên (MEMBER)",
     icon: "⭐",
     className: "none",
     min: 0,
-    next: 500000,
+    next: 5000000,
+    bonus: "Tích 1 điểm mỗi 10.000đ",
   };
 }
 
@@ -53,55 +52,78 @@ function money(value) {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-
-  const { user, updateProfile, changePassword } = useAuth();
-
+  const { user, token, updateProfile, changePassword } = useAuth();
   const fileInputRef = useRef(null);
 
   const [profile, setProfile] = useState({
-    name: user?.name || "",
+    name: user?.name || user?.fullName || "",
     email: user?.email || "",
     gender: user?.gender || "",
     birthDate: user?.birthDate || "",
     phone: user?.phone || "",
+    address: user?.address || "",
     avatar: user?.avatar || "",
     totalSpent: Number(user?.totalSpent) || 0,
   });
 
   const [currentPassword, setCurrentPassword] = useState("");
-
   const [newPassword, setNewPassword] = useState("");
-
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [message, setMessage] = useState("");
-
   const [error, setError] = useState("");
-
   const [activeSection, setActiveSection] = useState("profile");
 
+  // Dữ liệu Loyalty từ Backend
+  const [loyalty, setLoyalty] = useState({
+    tier: "MEMBER",
+    points: 0,
+    totalSpend: 0,
+  });
+  const [transactions, setTransactions] = useState([]);
+  const [myOrders, setMyOrders] = useState([]);
+
+  useEffect(() => {
+    if (!token) return;
+
+    getMyLoyaltyApi(token)
+      .then((data) => {
+        if (data) {
+          setLoyalty({
+            tier: data.tier || "MEMBER",
+            points: data.points || 0,
+            totalSpend: Number(data.totalSpend) || 0,
+          });
+        }
+      })
+      .catch((err) => console.warn("Lỗi tải thông tin điểm:", err));
+
+    getLoyaltyTransactionsApi(token)
+      .then((data) => {
+        if (Array.isArray(data)) setTransactions(data);
+      })
+      .catch((err) => console.warn("Lỗi tải lịch sử giao dịch điểm:", err));
+
+    getMyOrdersApi(token)
+      .then((data) => {
+        if (Array.isArray(data)) setMyOrders(data);
+      })
+      .catch((err) => console.warn("Lỗi tải đơn hàng:", err));
+  }, [token]);
+
   const membership = useMemo(
-    () => getMembership(profile.totalSpent),
-    [profile.totalSpent],
+    () => getMembership(loyalty.tier, loyalty.totalSpend),
+    [loyalty.tier, loyalty.totalSpend],
   );
 
   const progress = useMemo(() => {
-    const spent = profile.totalSpent;
-
-    if (spent >= 5000000) {
-      return 100;
+    const spent = loyalty.totalSpend;
+    if (membership.name.includes("GOLD") || spent >= 20000000) return 100;
+    if (membership.name.includes("SILVER") || spent >= 5000000) {
+      return Math.min(100, ((spent - 5000000) / 15000000) * 100);
     }
-
-    if (spent >= 2000000) {
-      return ((spent - 2000000) / 3000000) * 100;
-    }
-
-    if (spent >= 500000) {
-      return ((spent - 500000) / 1500000) * 100;
-    }
-
-    return (spent / 500000) * 100;
-  }, [profile.totalSpent]);
+    return Math.min(100, (spent / 5000000) * 100);
+  }, [membership, loyalty.totalSpend]);
 
   function handleChange(event) {
     const { name, value } = event.target;
@@ -144,13 +166,13 @@ export default function ProfilePage() {
     reader.readAsDataURL(file);
   }
 
-  function handleSaveProfile(event) {
+  async function handleSaveProfile(event) {
     event.preventDefault();
 
     setMessage("");
     setError("");
 
-    const result = updateProfile(profile);
+    const result = await updateProfile(profile);
 
     if (!result.success) {
       setError(result.message);
@@ -264,7 +286,20 @@ export default function ProfilePage() {
                 onClick={() => setActiveSection("points")}
               >
                 <span>⭐</span>
-                Xem tích điểm
+                Tích điểm & Hạng
+              </button>
+
+              <button
+                type="button"
+                className={
+                  activeSection === "orders"
+                    ? "profile-menu-item active"
+                    : "profile-menu-item"
+                }
+                onClick={() => setActiveSection("orders")}
+              >
+                <span>📦</span>
+                Đơn hàng của tôi
               </button>
             </div>
           </aside>
@@ -459,8 +494,8 @@ export default function ProfilePage() {
               <div className="profile-card">
                 <div className="profile-card-header">
                   <div>
-                    <h1>⭐ Tích điểm thành viên</h1>
-                    <p>Mua sắm càng nhiều, hạng thành viên càng cao.</p>
+                    <h1>⭐ Ví điểm & Hạng thành viên</h1>
+                    <p>Mua sắm 10.000đ = 1 điểm. Nâng hạng nhận thêm điểm thưởng.</p>
                   </div>
                 </div>
 
@@ -469,20 +504,20 @@ export default function ProfilePage() {
 
                   <div className="membership-current-info">
                     <span>Hạng thành viên hiện tại</span>
-
                     <strong>{membership.name}</strong>
-
-                    <small>
-                      Tổng chi tiêu: <b>{money(profile.totalSpent)}</b>
+                    <div style={{ marginTop: "6px", fontSize: "16px", color: "#10b981", fontWeight: "700" }}>
+                      ⭐ Điểm tích lũy: {loyalty.points} điểm
+                    </div>
+                    <small style={{ marginTop: "4px", display: "block" }}>
+                      Tổng chi tiêu thực tế: <b>{money(loyalty.totalSpend)}</b>
                     </small>
                   </div>
                 </div>
 
                 <div className="membership-progress-box">
                   <div className="membership-progress-header">
-                    <span>Tiến trình tích điểm</span>
-
-                    <strong>{money(profile.totalSpent)}</strong>
+                    <span>Tiến trình nâng hạng</span>
+                    <strong>{money(loyalty.totalSpend)}</strong>
                   </div>
 
                   <div className="membership-progress">
@@ -498,15 +533,13 @@ export default function ProfilePage() {
                     <p className="membership-next">
                       Còn{" "}
                       <strong>
-                        {money(
-                          Math.max(membership.next - profile.totalSpent, 0),
-                        )}
+                        {money(Math.max(membership.next - loyalty.totalSpend, 0))}
                       </strong>{" "}
-                      để đạt hạng tiếp theo.
+                      chi tiêu để đạt hạng tiếp theo.
                     </p>
                   ) : (
                     <p className="membership-next">
-                      🎉 Bạn đã đạt hạng cao nhất!
+                      🎉 Chúc mừng bạn đã đạt hạng thành viên cao nhất (VÀNG)!
                     </p>
                   )}
                 </div>
@@ -514,55 +547,184 @@ export default function ProfilePage() {
                 <div className="membership-levels">
                   <div
                     className={`membership-level silver ${
-                      membership.name === "Bạc" ? "current" : ""
+                      membership.name.includes("MEMBER") ? "current" : ""
+                    }`}
+                  >
+                    <div className="membership-level-icon">⭐</div>
+                    <div>
+                      <strong>Thành viên (MEMBER)</strong>
+                      <span>Dưới 5.000.000đ • Tích 1 điểm/10k</span>
+                    </div>
+                  </div>
+
+                  <div
+                    className={`membership-level silver ${
+                      membership.name.includes("SILVER") ? "current" : ""
                     }`}
                   >
                     <div className="membership-level-icon">🥈</div>
-
                     <div>
-                      <strong>Bạc</strong>
-
-                      <span>500.000đ – dưới 2.000.000đ</span>
+                      <strong>Bạc (SILVER)</strong>
+                      <span>Từ 5.000.000đ • Thưởng +50 điểm</span>
                     </div>
                   </div>
 
                   <div
                     className={`membership-level gold ${
-                      membership.name === "Vàng" ? "current" : ""
+                      membership.name.includes("GOLD") ? "current" : ""
                     }`}
                   >
                     <div className="membership-level-icon">🥇</div>
-
                     <div>
-                      <strong>Vàng</strong>
-
-                      <span>2.000.000đ – dưới 5.000.000đ</span>
-                    </div>
-                  </div>
-
-                  <div
-                    className={`membership-level diamond ${
-                      membership.name === "Kim cương" ? "current" : ""
-                    }`}
-                  >
-                    <div className="membership-level-icon">💎</div>
-
-                    <div>
-                      <strong>Kim cương</strong>
-
-                      <span>Từ 5.000.000đ trở lên</span>
+                      <strong>Vàng (GOLD)</strong>
+                      <span>Từ 20.000.000đ • Thưởng +200 điểm</span>
                     </div>
                   </div>
                 </div>
 
-                <div className="membership-note">
-                  <strong>💡 Cách tính hạng</strong>
-
-                  <p>
-                    Hạng thành viên được xác định dựa trên tổng giá trị mua hàng
-                    tích lũy của bạn.
-                  </p>
+                {/* LỊCH SỬ GIAO DỊCH TÍCH ĐIỂM */}
+                <div style={{ marginTop: "30px" }}>
+                  <h3 style={{ fontSize: "16px", marginBottom: "12px", fontWeight: "700" }}>
+                    📜 Lịch sử tích điểm
+                  </h3>
+                  {transactions.length === 0 ? (
+                    <p style={{ color: "#64748b", fontSize: "14px" }}>
+                      Chưa có giao dịch tích điểm nào. Hãy đặt hàng để tích điểm ngay!
+                    </p>
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                      {transactions.map((t) => (
+                        <div
+                          key={t.id}
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            padding: "12px 16px",
+                            background: "#f8fafc",
+                            borderRadius: "10px",
+                            border: "1px solid #e2e8f0",
+                          }}
+                        >
+                          <div>
+                            <strong>{t.description || `Đơn hàng #${t.orderId}`}</strong>
+                            <div style={{ fontSize: "12px", color: "#64748b" }}>
+                              {t.createdAt ? new Date(t.createdAt).toLocaleString("vi-VN") : "Gần đây"}
+                            </div>
+                          </div>
+                          <span style={{ color: "#10b981", fontWeight: "700", fontSize: "16px" }}>
+                            +{t.points} điểm
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
+              </div>
+            )}
+
+            {/* ĐƠN HÀNG CỦA TÔI */}
+            {activeSection === "orders" && (
+              <div className="profile-card">
+                <div className="profile-card-header">
+                  <div>
+                    <h1>📦 Đơn hàng của tôi</h1>
+                    <p>Danh sách các đơn hàng bạn đã đặt tại Smart Grocery.</p>
+                  </div>
+                </div>
+
+                {myOrders.length === 0 ? (
+                  <div style={{ textAlign: "center", padding: "40px 20px" }}>
+                    <span style={{ fontSize: "40px" }}>🛒</span>
+                    <p style={{ marginTop: "12px", color: "#64748b" }}>
+                      Bạn chưa có đơn hàng nào.
+                    </p>
+                    <button
+                      className="add-button"
+                      style={{ marginTop: "12px", padding: "10px 20px" }}
+                      onClick={() => navigate("/")}
+                    >
+                      Bắt đầu mua sắm ngay
+                    </button>
+                  </div>
+                ) : (
+                  <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                    {myOrders.map((order) => (
+                      <div
+                        key={order.id}
+                        style={{
+                          border: "1px solid #e2e8f0",
+                          borderRadius: "12px",
+                          padding: "16px",
+                          background: "#ffffff",
+                        }}
+                      >
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            alignItems: "center",
+                            borderBottom: "1px solid #f1f5f9",
+                            paddingBottom: "10px",
+                            marginBottom: "12px",
+                          }}
+                        >
+                          <div>
+                            <strong>Mã đơn: #{order.id}</strong>
+                            <div style={{ fontSize: "12px", color: "#64748b" }}>
+                              {order.createdAt ? new Date(order.createdAt).toLocaleString("vi-VN") : "Gần đây"}
+                            </div>
+                          </div>
+                          <span
+                            style={{
+                              background: order.status === "DELIVERED" ? "#ecfdf5" : "#eff6ff",
+                              color: order.status === "DELIVERED" ? "#059669" : "#2563eb",
+                              padding: "4px 10px",
+                              borderRadius: "12px",
+                              fontSize: "12px",
+                              fontWeight: "700",
+                            }}
+                          >
+                            {order.status === "PENDING" ? "ĐANG XỬ LÝ" : order.status}
+                          </span>
+                        </div>
+
+                        {/* Danh sách món */}
+                        {order.items && (
+                          <div style={{ display: "flex", flexDirection: "column", gap: "6px", marginBottom: "12px" }}>
+                            {order.items.map((it) => (
+                              <div
+                                key={it.id}
+                                style={{
+                                  display: "flex",
+                                  justifyContent: "space-between",
+                                  fontSize: "14px",
+                                }}
+                              >
+                                <span>{it.productName} × {it.quantity}</span>
+                                <span style={{ fontWeight: "600" }}>{money(it.subtotal)}</span>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        <div
+                          style={{
+                            display: "flex",
+                            justifyContent: "space-between",
+                            borderTop: "1px solid #f1f5f9",
+                            paddingTop: "10px",
+                            fontWeight: "700",
+                          }}
+                        >
+                          <span>Tổng thanh toán:</span>
+                          <span style={{ color: "#10b981", fontSize: "16px" }}>
+                            {money(order.totalAmount)}
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </section>
