@@ -7,6 +7,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface AiPredictionRepository extends JpaRepository<AiPrediction, Long> {
@@ -18,6 +19,8 @@ public interface AiPredictionRepository extends JpaRepository<AiPrediction, Long
             ORDER BY ap.confidence DESC
             """)
     List<AiPrediction> findAllByUserIdOrderByConfidenceDesc(Long userId);
+
+    Optional<AiPrediction> findByUserIdAndProductId(Long userId, Long productId);
 
     @Modifying
     @Query("DELETE FROM AiPrediction ap WHERE ap.user.id = :userId")

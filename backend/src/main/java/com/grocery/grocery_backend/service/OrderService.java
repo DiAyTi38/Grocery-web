@@ -34,6 +34,7 @@ public class OrderService {
     private final InventoryRepository inventoryRepository;
     private final UserRepository userRepository;
     private final LoyaltyService loyaltyService;
+    private final AiService aiService;
 
     public OrderDto checkout(Authentication authentication) {
         return checkout(authentication, false);
@@ -94,9 +95,10 @@ public class OrderService {
 
         Order savedOrder = orderRepository.save(order);
 
-        // Kết hợp Phương án 3: Nếu autoDeliver = true, kích hoạt tích điểm Loyalty ngay lập tức
+        // Kết hợp Phương án 3: Nếu autoDeliver = true, kích hoạt tích điểm Loyalty và cập nhật AI
         if (autoDeliver) {
             loyaltyService.earnPointsFromOrder(savedOrder);
+            aiService.onOrderDelivered(savedOrder);
         }
 
         return OrderDto.from(savedOrder);
@@ -126,9 +128,10 @@ public class OrderService {
             return OrderDto.from(order);
         }
 
-        // Kết hợp Phương án 1: Nếu chuyển sang DELIVERED -> Tự động kích hoạt tích điểm Loyalty
+        // Kết hợp Phương án 1: Nếu chuyển sang DELIVERED -> Tự động kích hoạt tích điểm Loyalty và cập nhật AI
         if (newStatus == Order.OrderStatus.DELIVERED && oldStatus != Order.OrderStatus.DELIVERED) {
             loyaltyService.earnPointsFromOrder(order);
+            aiService.onOrderDelivered(order);
         }
 
         // Nếu chuyển sang CANCELLED -> Tự động hoàn trả tồn kho vào MySQL
