@@ -5,6 +5,8 @@ import "../admin.css";
 
 const EMPTY_FORM = {
   name: "",
+  sku: "",
+  unit: "Gói",
   price: "",
   description: "",
   imageUrl: "",
@@ -134,7 +136,11 @@ export default function AdminProductsPage() {
 
   function openCreate() {
     setEditingId(null);
-    setForm({ ...EMPTY_FORM });
+    setForm({
+      ...EMPTY_FORM,
+      sku: `SKU-${Date.now().toString().slice(-6)}`,
+      unit: "Gói",
+    });
     setShowForm(true);
     setError("");
     setSuccess("");
@@ -144,11 +150,19 @@ export default function AdminProductsPage() {
     setEditingId(product.id);
     setForm({
       name: product.name || "",
+      sku: product.sku || "",
+      unit: product.unit || "Gói",
       price: String(product.price ?? ""),
       description: product.description || "",
       imageUrl: product.imageUrl || product.image || "",
       categoryId: String(product.category?.id ?? product.categoryId ?? ""),
-      stock: String(product.stock ?? product.quantity ?? 0),
+      stock: String(
+        product.availableQuantity ??
+          product.stockQuantity ??
+          product.stock ??
+          product.quantity ??
+          0,
+      ),
     });
     setShowForm(true);
     setError("");
@@ -169,6 +183,16 @@ export default function AdminProductsPage() {
 
     if (!form.name.trim()) {
       setError("Vui lòng nhập tên sản phẩm.");
+      return;
+    }
+
+    if (!form.sku.trim()) {
+      setError("Vui lòng nhập mã SKU cho sản phẩm.");
+      return;
+    }
+
+    if (!form.unit.trim()) {
+      setError("Vui lòng nhập đơn vị tính (ví dụ: Lon, Chai, Gói, Hộp).");
       return;
     }
 
@@ -193,23 +217,43 @@ export default function AdminProductsPage() {
 
     const payload = {
       name: form.name.trim(),
+      sku: form.sku.trim(),
+      unit: form.unit.trim(),
       price: Number(form.price),
       description: form.description.trim(),
       imageUrl: form.imageUrl.trim(),
       categoryId: Number(form.categoryId),
-      stock: Number(form.stock),
+      initialQuantity: Number(form.stock),
+      lowStockThreshold: 5,
+      active: true,
     };
 
     setSaving(true);
 
     try {
-      await request(
-        editingId != null ? `/products/${editingId}` : "/products",
-        {
-          method: editingId != null ? "PUT" : "POST",
+      if (editingId != null) {
+        await request(`/products/${editingId}`, {
+          method: "PUT",
           body: JSON.stringify(payload),
-        },
-      );
+        });
+
+        try {
+          await request(`/inventory/${editingId}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              quantity: Number(form.stock),
+              lowStockThreshold: 5,
+            }),
+          });
+        } catch (invErr) {
+          console.warn("Không cập nhật được kho:", invErr);
+        }
+      } else {
+        await request("/products", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
 
       setShowForm(false);
       setEditingId(null);
@@ -363,6 +407,30 @@ export default function AdminProductsPage() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="Ví dụ: Sữa tươi không đường"
+                  />
+                </div>
+
+                <div className="admin-page__field">
+                  <label htmlFor="product-sku">Mã SKU *</label>
+                  <input
+                    id="product-sku"
+                    className="admin-page__input"
+                    required
+                    value={form.sku}
+                    onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                    placeholder="Ví dụ: SKU-101"
+                  />
+                </div>
+
+                <div className="admin-page__field">
+                  <label htmlFor="product-unit">Đơn vị tính *</label>
+                  <input
+                    id="product-unit"
+                    className="admin-page__input"
+                    required
+                    value={form.unit}
+                    onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                    placeholder="Ví dụ: Lon, Chai, Gói, Hộp"
                   />
                 </div>
 
@@ -587,7 +655,7 @@ export default function AdminProductsPage() {
                               {product.name || "Chưa đặt tên"}
                             </div>
                             <div className="admin-page__muted">
-                              Mã SP: {product.id}
+                              Mã: #{product.id} • SKU: {product.sku || "—"} • ĐVT: {product.unit || "—"}
                             </div>
                           </div>
                         </div>

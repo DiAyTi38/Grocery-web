@@ -1,9 +1,59 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 
 function AdminDashboardPage() {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { token, logout } = useAuth();
+
+  const [stats, setStats] = useState({
+    usersCount: 0,
+    productsCount: 0,
+    categoriesCount: 0,
+    totalStock: 0,
+  });
+
+  useEffect(() => {
+    if (!token) return;
+
+    async function loadStats() {
+      try {
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        };
+
+        const [usersRes, productsRes, categoriesRes] = await Promise.all([
+          fetch("http://localhost:8080/api/users", { headers }),
+          fetch("http://localhost:8080/api/products", { headers }),
+          fetch("http://localhost:8080/api/categories", { headers }),
+        ]);
+
+        const usersData = usersRes.ok ? await usersRes.json() : [];
+        const productsData = productsRes.ok ? await productsRes.json() : [];
+        const categoriesData = categoriesRes.ok ? await categoriesRes.json() : [];
+
+        const usersList = Array.isArray(usersData) ? usersData : usersData?.content || [];
+        const productsList = Array.isArray(productsData) ? productsData : productsData?.content || [];
+        const categoriesList = Array.isArray(categoriesData) ? categoriesData : categoriesData?.content || [];
+
+        const totalStock = productsList.reduce((acc, p) => {
+          return acc + (Number(p.availableQuantity ?? p.stockQuantity ?? p.stock ?? 0) || 0);
+        }, 0);
+
+        setStats({
+          usersCount: usersList.length,
+          productsCount: productsList.length,
+          categoriesCount: categoriesList.length,
+          totalStock,
+        });
+      } catch (err) {
+        console.warn("Lỗi tải thống kê Dashboard:", err);
+      }
+    }
+
+    loadStats();
+  }, [token]);
 
   // ==================================================
   // ĐĂNG XUẤT ADMIN
@@ -123,7 +173,7 @@ function AdminDashboardPage() {
             <div>
               <p style={styles.cardLabel}>Tài khoản</p>
 
-              <h2 style={styles.cardNumber}>0</h2>
+              <h2 style={styles.cardNumber}>{stats.usersCount}</h2>
             </div>
           </div>
 
@@ -139,7 +189,7 @@ function AdminDashboardPage() {
             <div>
               <p style={styles.cardLabel}>Sản phẩm</p>
 
-              <h2 style={styles.cardNumber}>0</h2>
+              <h2 style={styles.cardNumber}>{stats.productsCount}</h2>
             </div>
           </div>
 
@@ -155,23 +205,23 @@ function AdminDashboardPage() {
             <div>
               <p style={styles.cardLabel}>Danh mục</p>
 
-              <h2 style={styles.cardNumber}>0</h2>
+              <h2 style={styles.cardNumber}>{stats.categoriesCount}</h2>
             </div>
           </div>
 
-          {/* ĐIỂM */}
+          {/* TỒN KHO HỆ THỐNG */}
           <div
             style={styles.card}
-            onClick={() => navigate("/admin/points")}
+            onClick={() => navigate("/admin/products")}
             role="button"
             tabIndex={0}
           >
-            <div style={styles.cardIcon}>⭐</div>
+            <div style={styles.cardIcon}>📊</div>
 
             <div>
-              <p style={styles.cardLabel}>Điểm đã cấp</p>
+              <p style={styles.cardLabel}>Tổng tồn kho</p>
 
-              <h2 style={styles.cardNumber}>0</h2>
+              <h2 style={styles.cardNumber}>{stats.totalStock}</h2>
             </div>
           </div>
         </div>

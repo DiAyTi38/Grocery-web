@@ -8,32 +8,24 @@ const money = (value) => `${(Number(value) || 0).toLocaleString("vi-VN")} ₫`;
 function getTier(spent) {
   const amount = Number(spent) || 0;
 
-  if (amount >= 5000000) {
+  if (amount >= 20000000) {
     return {
-      name: "Kim cương",
-      icon: "💎",
-      className: "diamond",
-    };
-  }
-
-  if (amount >= 2000000) {
-    return {
-      name: "Vàng",
+      name: "Vàng (GOLD)",
       icon: "🥇",
       className: "gold",
     };
   }
 
-  if (amount >= 500000) {
+  if (amount >= 5000000) {
     return {
-      name: "Bạc",
+      name: "Bạc (SILVER)",
       icon: "🥈",
       className: "silver",
     };
   }
 
   return {
-    name: "Chưa xếp hạng",
+    name: "Thành viên (MEMBER)",
     icon: "⭐",
     className: "default",
   };
@@ -128,14 +120,14 @@ export default function AdminPointsPage() {
   const totalSpent = members.reduce((sum, account) => sum + account.spent, 0);
 
   const tierCounts = {
-    diamond: members.filter(
-      (account) => getTier(account.spent).className === "diamond",
-    ).length,
     gold: members.filter(
       (account) => getTier(account.spent).className === "gold",
     ).length,
     silver: members.filter(
       (account) => getTier(account.spent).className === "silver",
+    ).length,
+    member: members.filter(
+      (account) => getTier(account.spent).className === "default",
     ).length,
   };
 
@@ -193,22 +185,22 @@ export default function AdminPointsPage() {
         </article>
 
         <article className="admin-page__stat">
-          <span className="admin-page__stat-label">Hạng vàng trở lên</span>
+          <span className="admin-page__stat-label">Hạng Vàng (GOLD)</span>
           <strong className="admin-page__stat-value">
-            {(tierCounts.gold + tierCounts.diamond).toLocaleString("vi-VN")}
+            {tierCounts.gold.toLocaleString("vi-VN")}
           </strong>
           <span className="admin-page__stat-note">
-            Thành viên chi tiêu từ 2 triệu đồng
+            Chi tiêu tích lũy từ 20 triệu đồng
           </span>
         </article>
 
         <article className="admin-page__stat">
-          <span className="admin-page__stat-label">Hạng kim cương</span>
+          <span className="admin-page__stat-label">Hạng Bạc (SILVER)</span>
           <strong className="admin-page__stat-value">
-            {tierCounts.diamond.toLocaleString("vi-VN")}
+            {tierCounts.silver.toLocaleString("vi-VN")}
           </strong>
           <span className="admin-page__stat-note">
-            Thành viên chi tiêu từ 5 triệu đồng
+            Chi tiêu tích lũy từ 5 triệu đồng
           </span>
         </article>
       </section>
@@ -218,26 +210,17 @@ export default function AdminPointsPage() {
           <div>
             <h2 className="admin-page__panel-title">Các hạng thành viên</h2>
             <p className="admin-page__panel-subtitle">
-              Hạng được xác định theo tổng chi tiêu ghi nhận.
+              Hạng được xác định tự động theo tổng chi tiêu mua sắm của khách.
             </p>
           </div>
         </div>
 
         <div className="admin-points-tier-grid">
-          <article className="admin-points-tier-card admin-points-tier-card--diamond">
-            <span className="admin-points-tier-icon">💎</span>
-            <div>
-              <strong>Kim cương</strong>
-              <p>Từ 5.000.000 ₫</p>
-              <span>{tierCounts.diamond} thành viên</span>
-            </div>
-          </article>
-
           <article className="admin-points-tier-card admin-points-tier-card--gold">
             <span className="admin-points-tier-icon">🥇</span>
             <div>
-              <strong>Vàng</strong>
-              <p>Từ 2.000.000 ₫ đến dưới 5.000.000 ₫</p>
+              <strong>Vàng (GOLD)</strong>
+              <p>Từ 20.000.000 ₫</p>
               <span>{tierCounts.gold} thành viên</span>
             </div>
           </article>
@@ -245,9 +228,18 @@ export default function AdminPointsPage() {
           <article className="admin-points-tier-card admin-points-tier-card--silver">
             <span className="admin-points-tier-icon">🥈</span>
             <div>
-              <strong>Bạc</strong>
-              <p>Từ 500.000 ₫ đến dưới 2.000.000 ₫</p>
+              <strong>Bạc (SILVER)</strong>
+              <p>Từ 5.000.000 ₫ đến dưới 20.000.000 ₫</p>
               <span>{tierCounts.silver} thành viên</span>
+            </div>
+          </article>
+
+          <article className="admin-points-tier-card">
+            <span className="admin-points-tier-icon">⭐</span>
+            <div>
+              <strong>Thành viên (MEMBER)</strong>
+              <p>Dưới 5.000.000 ₫</p>
+              <span>{tierCounts.member} thành viên</span>
             </div>
           </article>
         </div>
@@ -299,10 +291,9 @@ export default function AdminPointsPage() {
               onChange={(e) => setTierFilter(e.target.value)}
             >
               <option value="ALL">Tất cả hạng</option>
-              <option value="Chưa xếp hạng">Chưa xếp hạng</option>
-              <option value="Bạc">Bạc</option>
-              <option value="Vàng">Vàng</option>
-              <option value="Kim cương">Kim cương</option>
+              <option value="Thành viên (MEMBER)">Thành viên (MEMBER)</option>
+              <option value="Bạc (SILVER)">Bạc (SILVER)</option>
+              <option value="Vàng (GOLD)">Vàng (GOLD)</option>
             </select>
           </div>
         </div>
