@@ -37,9 +37,17 @@ docker compose logs -f backend
 ```
 
 ### Bước 2: Chạy Backend (Spring Boot)
-1. Mở thư mục `backend` bằng IDE của bạn.
-2. Cập nhật thư viện Maven (Reload Project / Sync).
-3. Chạy file `GroceryBackendApplication.java`.
+- **Cách 1 (Bằng Terminal - Nhanh nhất):**
+  Mở Terminal tại thư mục `backend` và gõ:
+  ```bash
+  ./mvnw spring-boot:run
+  ```
+  *(Trên Windows: `mvnw.cmd spring-boot:run`)*
+
+- **Cách 2 (Bằng IDE):**
+  1. Mở thư mục `backend` bằng IntelliJ IDEA hoặc VS Code.
+  2. Cập nhật thư viện Maven (Reload Project).
+  3. Chạy file `GroceryBackendApplication.java`.
 
 🚨 **LƯU Ý CỰC KỲ QUAN TRỌNG VỀ DATABASE:**
 Hệ thống sử dụng **Flyway Migration**. Ngay khi Spring Boot khởi động, nó sẽ tự động chạy các file `.sql` trong thư mục `backend/src/main/resources/db/migration/` để **tự tạo bảng**. Docker MySQL không chứa script tạo schema riêng.
