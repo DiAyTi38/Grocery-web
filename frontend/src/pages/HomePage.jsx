@@ -969,23 +969,6 @@ export default function HomePage() {
                     position: "relative",
                   }}
                 >
-                  <span
-                    style={{
-                      position: "absolute",
-                      top: "12px",
-                      right: "12px",
-                      background: "#ecfdf5",
-                      color: "#059669",
-                      fontSize: "11px",
-                      fontWeight: "700",
-                      padding: "4px 8px",
-                      borderRadius: "12px",
-                    }}
-                  >
-                    {item.type === "REPLENISHMENT"
-                      ? `Độ tin cậy ${Math.round((item.confidence || 0.8) * 100)}%`
-                      : "Bán chạy"}
-                  </span>
 
                   <div>
                     <div style={{ fontSize: "40px", textAlign: "center", margin: "10px 0" }}>
