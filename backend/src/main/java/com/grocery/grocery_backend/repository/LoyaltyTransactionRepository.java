@@ -8,5 +8,5 @@ import java.util.List;
 
 @Repository
 public interface LoyaltyTransactionRepository extends JpaRepository<LoyaltyTransaction, Long> {
-    List<LoyaltyTransaction> findByLoyaltyAccountIdOrderByCreatedAtDesc(Long accountId);
+    List<LoyaltyTransaction> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

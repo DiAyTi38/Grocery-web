@@ -53,10 +53,7 @@ public class LoyaltyService {
     @Transactional(readOnly = true)
     public List<LoyaltyTransactionDto> getLoyaltyTransactions(Authentication authentication) {
         User user = getUser(authentication.getName());
-        LoyaltyAccount account = loyaltyAccountRepository.findByUserId(user.getId())
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Chưa có ví điểm"));
-
-        List<LoyaltyTransaction> transactions = loyaltyTransactionRepository.findByLoyaltyAccountIdOrderByCreatedAtDesc(account.getId());
+        List<LoyaltyTransaction> transactions = loyaltyTransactionRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
         return transactions.stream().map(this::toDto).collect(Collectors.toList());
     }
 
@@ -125,7 +122,7 @@ public class LoyaltyService {
     private void createTransaction(LoyaltyAccount account, Order order, int points, 
                                    LoyaltyTransaction.TransactionType type, String description) {
         LoyaltyTransaction transaction = LoyaltyTransaction.builder()
-                .loyaltyAccount(account)
+                .user(account.getUser())
                 .order(order)
                 .points(points)
                 .type(type)
