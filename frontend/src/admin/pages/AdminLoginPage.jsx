@@ -1,38 +1,35 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
 
 function AdminLoginPage() {
   const navigate = useNavigate();
+  const { adminLogin } = useAuth();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  function handleLogin(event) {
+  async function handleLogin(event) {
     event.preventDefault();
-
     setError("");
+    setLoading(true);
 
-    // Tài khoản Admin demo
-    const ADMIN_USERNAME = "admin";
-    const ADMIN_EMAIL = "admin@smartgrocery.com";
-    const ADMIN_PASSWORD = "admin123";
+    try {
+      const result = await adminLogin(username, password);
 
-    // Cho phép đăng nhập bằng username hoặc email
-    const loginInput = username.trim().toLowerCase();
+      if (!result.success) {
+        setError(result.message);
+        return;
+      }
 
-    const isValidAccount =
-      loginInput === ADMIN_USERNAME || loginInput === ADMIN_EMAIL;
-
-    if (!isValidAccount || password !== ADMIN_PASSWORD) {
-      setError("Username/email hoặc mật khẩu Admin không chính xác.");
-      return;
+      navigate("/admin");
+    } catch (err) {
+      setError(err.message || "Đăng nhập thất bại. Vui lòng thử lại.");
+    } finally {
+      setLoading(false);
     }
-
-    // Lưu trạng thái đăng nhập Admin trong phiên hiện tại
-    sessionStorage.setItem("smart-grocery-admin", "true");
-
-    navigate("/admin");
   }
 
   return (
@@ -47,22 +44,23 @@ function AdminLoginPage() {
         <div className="auth-heading">
           <span className="auth-eyebrow">ADMIN</span>
 
-          <h1>Đăng nhập</h1>
+          <h1>Đăng nhập Quản trị</h1>
 
-          <p>Đăng nhập vào khu vực quản trị Smart Grocery.</p>
+          <p>Khu vực dành riêng cho Quản trị viên hệ thống.</p>
         </div>
 
         {/* FORM */}
         <form className="auth-form" onSubmit={handleLogin}>
-          <label htmlFor="admin-username">Username hoặc Email Admin</label>
+          <label htmlFor="admin-username">Username Quản trị viên</label>
 
           <input
             id="admin-username"
             type="text"
-            placeholder="Nhập username hoặc email Admin"
+            placeholder="Nhập username Admin"
             value={username}
             onChange={(event) => setUsername(event.target.value)}
             autoComplete="username"
+            disabled={loading}
             required
           />
 
@@ -71,17 +69,22 @@ function AdminLoginPage() {
           <input
             id="admin-password"
             type="password"
-            placeholder="Nhập mật khẩu"
+            placeholder="Nhập mật khẩu Admin"
             value={password}
             onChange={(event) => setPassword(event.target.value)}
             autoComplete="current-password"
+            disabled={loading}
             required
           />
 
           {error && <div className="auth-error">{error}</div>}
 
-          <button type="submit" className="auth-primary auth-submit">
-            Đăng nhập Admin
+          <button
+            type="submit"
+            className="auth-primary auth-submit"
+            disabled={loading}
+          >
+            {loading ? "Đang xác thực..." : "Đăng nhập Admin"}
           </button>
         </form>
 

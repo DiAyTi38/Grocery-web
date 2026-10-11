@@ -61,7 +61,13 @@ function GuestRoute({ children }) {
 // BẢO VỆ CÁC TRANG ADMIN
 // ==================================================
 function AdminProtectedRoute({ children }) {
-  const isAdmin = sessionStorage.getItem("smart-grocery-admin") === "true";
+  const { user, token } = useAuth();
+  const isAdmin =
+    (sessionStorage.getItem("smart-grocery-admin") === "true" ||
+      user?.isAdmin ||
+      user?.role === "ROLE_ADMIN" ||
+      user?.roles?.includes("ROLE_ADMIN")) &&
+    Boolean(token);
 
   if (!isAdmin) {
     return <Navigate to="/admin/login" replace />;

@@ -107,60 +107,67 @@ async function adminRequest(path, token, options = {}) {
 function getLoyaltyTier(totalSpent = 0) {
   const amount = Number(totalSpent) || 0;
 
-  if (amount >= 5000000) {
+  if (amount >= 20000000) {
     return {
-      name: "Kim cương",
-      key: "diamond",
-      min: 5000000,
-      max: null,
-      icon: "💎",
-    };
-  }
-
-  if (amount >= 2000000) {
-    return {
-      name: "Vàng",
+      name: "Vàng (GOLD)",
       key: "gold",
-      min: 2000000,
-      max: 5000000,
+      min: 20000000,
+      max: null,
       icon: "🥇",
     };
   }
 
-  if (amount >= 500000) {
+  if (amount >= 5000000) {
     return {
-      name: "Bạc",
+      name: "Bạc (SILVER)",
       key: "silver",
-      min: 500000,
-      max: 2000000,
+      min: 5000000,
+      max: 20000000,
       icon: "🥈",
     };
   }
 
   return {
-    name: "Chưa xếp hạng",
-    key: "none",
+    name: "Thành viên (MEMBER)",
+    key: "member",
     min: 0,
-    max: 500000,
+    max: 5000000,
     icon: "⭐",
   };
 }
 
 export function AuthProvider({ children }) {
-  // Không lưu phiên đăng nhập vào localStorage.
-  // Tải lại trang sẽ yêu cầu đăng nhập lại.
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(null);
+  // Khởi tạo phiên đăng nhập từ localStorage để khi F5 không bị văng
+  const [user, setUser] = useState(() => {
+    try {
+      const savedUser = localStorage.getItem("smart-grocery-user");
+      return savedUser ? JSON.parse(savedUser) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [token, setToken] = useState(() => {
+    return localStorage.getItem("smart-grocery-token") || null;
+  });
 
   function buildCurrentUser(account) {
     const totalSpent = Number(account.totalSpent) || 0;
+    const roles = Array.isArray(account.roles)
+      ? account.roles
+      : [account.role || "ROLE_USER"];
+    const role = roles.includes("ROLE_ADMIN")
+      ? "ROLE_ADMIN"
+      : account.role || "ROLE_USER";
 
     return {
       id: account.id,
       username: account.username || "",
       name: account.name || account.fullName || account.username || "",
       email: account.email || "",
-      role: account.role || "ROLE_USER",
+      role: role,
+      roles: roles,
+      isAdmin: roles.includes("ROLE_ADMIN") || role === "ROLE_ADMIN",
       avatar: account.avatar || "",
       gender: account.gender || "",
       birthDate: account.birthDate || "",
@@ -170,7 +177,19 @@ export function AuthProvider({ children }) {
     };
   }
 
-  // ĐĂNG KÝ.
+  function saveSession(jwtToken, currentUser) {
+    setToken(jwtToken);
+    setUser(currentUser);
+    localStorage.setItem("smart-grocery-token", jwtToken);
+    localStorage.setItem("smart-grocery-user", JSON.stringify(currentUser));
+    if (currentUser.isAdmin) {
+      sessionStorage.setItem("smart-grocery-admin", "true");
+    } else {
+      sessionStorage.removeItem("smart-grocery-admin");
+    }
+  }
+
+  // ĐĂNG KÝ
   async function register(name, email, password, username) {
     const cleanName = String(name || "").trim();
     const cleanUsername = String(username || "").trim();
@@ -226,7 +245,7 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // ĐĂNG NHẬP.
+  // ĐĂNG NHẬP KHÁCH HÀNG
   async function login(username, password) {
     const cleanUsername = String(username || "").trim();
 
@@ -255,12 +274,12 @@ export function AuthProvider({ children }) {
         username: result.username || cleanUsername,
         name: result.fullName || result.username || cleanUsername,
         email: result.email,
+        roles: result.roles,
         role: result.role,
         phone: result.phone,
       });
 
-      setToken(result.token);
-      setUser(currentUser);
+      saveSession(result.token, currentUser);
 
       return {
         success: true,
@@ -274,10 +293,77 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // ĐĂNG XUẤT.
+  // ĐĂNG NHẬP ADMIN (Xác thực quyền ROLE_ADMIN thật từ Backend)
+  async function adminLogin(username, password) {
+    const cleanUsername = String(username || "").trim();
+
+    if (!cleanUsername || !password) {
+      return {
+        success: false,
+        message: "Vui lòng nhập tên đăng nhập và mật khẩu Admin.",
+      };
+    }
+
+    try {
+      const result = await postAuth("login", {
+        username: cleanUsername,
+        password,
+      });
+
+      if (!result?.token) {
+        return {
+          success: false,
+          message: "Backend không trả về JWT token.",
+        };
+      }
+
+      const roles = Array.isArray(result.roles)
+        ? result.roles
+        : [result.role || ""];
+
+      const isAdmin =
+        roles.includes("ROLE_ADMIN") ||
+        roles.includes("ADMIN") ||
+        result.role === "ROLE_ADMIN";
+
+      if (!isAdmin) {
+        return {
+          success: false,
+          message: "Tài khoản của bạn không có quyền Quản trị viên (Admin).",
+        };
+      }
+
+      const currentUser = buildCurrentUser({
+        id: result.id,
+        username: result.username || cleanUsername,
+        name: result.fullName || result.username || cleanUsername,
+        email: result.email,
+        roles: roles,
+        role: "ROLE_ADMIN",
+        phone: result.phone,
+      });
+
+      saveSession(result.token, currentUser);
+
+      return {
+        success: true,
+        user: currentUser,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Tên đăng nhập hoặc mật khẩu Admin không đúng.",
+      };
+    }
+  }
+
+  // ĐĂNG XUẤT
   function logout() {
     setUser(null);
     setToken(null);
+    localStorage.removeItem("smart-grocery-user");
+    localStorage.removeItem("smart-grocery-token");
+    sessionStorage.removeItem("smart-grocery-admin");
   }
 
   // ==============================
@@ -302,7 +388,42 @@ export function AuthProvider({ children }) {
     return adminRequest("/users/profile", token);
   }
 
-  // Các chức năng này cần API backend tương ứng.
+  // Cập nhật thông tin hồ sơ khách hàng (nối API PUT /api/users/profile)
+  async function updateProfile(profileData) {
+    try {
+      const data = await adminRequest("/users/profile", token, {
+        method: "PUT",
+        body: JSON.stringify({
+          fullName: profileData.name || profileData.fullName,
+          phone: profileData.phone,
+          address: profileData.address,
+        }),
+      });
+
+      const updatedUser = {
+        ...user,
+        name: data.fullName || user.name,
+        phone: data.phone || user.phone,
+        address: data.address || user.address,
+      };
+
+      setUser(updatedUser);
+      localStorage.setItem("smart-grocery-user", JSON.stringify(updatedUser));
+
+      return {
+        success: true,
+        message: "Cập nhật hồ sơ thành công.",
+        user: updatedUser,
+      };
+    } catch (err) {
+      return {
+        success: false,
+        message: err.message || "Không thể cập nhật hồ sơ.",
+      };
+    }
+  }
+
+  // Các chức năng phụ trợ
   async function resetPassword() {
     return {
       success: false,
@@ -317,15 +438,6 @@ export function AuthProvider({ children }) {
     };
   }
 
-  async function updateProfile() {
-    return {
-      success: false,
-      message: "Chức năng cập nhật hồ sơ cần được bổ sung API ở backend.",
-    };
-  }
-
-  // Tạm tính tổng chi tiêu trong phiên hiện tại.
-  // Chưa lưu điểm vào MySQL.
   function addSpent(amount) {
     if (!user) {
       return {
@@ -335,7 +447,6 @@ export function AuthProvider({ children }) {
     }
 
     const value = Number(amount);
-
     if (!Number.isFinite(value) || value <= 0) {
       return {
         success: false,
@@ -349,10 +460,11 @@ export function AuthProvider({ children }) {
     });
 
     setUser(updatedUser);
+    localStorage.setItem("smart-grocery-user", JSON.stringify(updatedUser));
 
     return {
       success: true,
-      message: "Đã cập nhật trong phiên hiện tại.",
+      message: "Đã cập nhật chi tiêu.",
       user: updatedUser,
     };
   }
@@ -367,6 +479,7 @@ export function AuthProvider({ children }) {
         user,
         token,
         login,
+        adminLogin,
         register,
         logout,
         resetPassword,
@@ -375,12 +488,13 @@ export function AuthProvider({ children }) {
         addSpent,
         getUserLoyaltyTier,
 
-        // Các hàm quản trị mới.
+        // Các hàm quản trị
         getAdminUsers,
         updateAdminUserStatus,
         fetchProfile,
 
         isAuthenticated: Boolean(user && token),
+        isAdmin: Boolean(user?.isAdmin || user?.role === "ROLE_ADMIN"),
       }}
     >
       {children}
