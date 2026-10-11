@@ -1777,21 +1777,39 @@ select:focus-visible {
 }
 
 /* =========================================================
-   CART PANEL
+   CART OVERLAY & PANEL
    ========================================================= */
 
+.cart-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(2px);
+  z-index: 9998;
+  animation: cartFadeIn 0.2s ease-out;
+}
+
+@keyframes cartFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
 .cart-panel {
-  position: absolute;
+  position: fixed;
 
-  z-index: 20;
+  z-index: 10001;
 
-  right: max(30px, calc((100% - 1260px) / 2));
+  right: max(20px, calc((100% - 1260px) / 2));
 
-  top: 110px;
+  top: 92px;
 
-  width: min(390px, calc(100vw - 30px));
+  width: min(400px, calc(100vw - 32px));
 
-  max-height: 75vh;
+  max-height: calc(100vh - 110px);
 
   overflow-y: auto;
 
@@ -1799,11 +1817,33 @@ select:focus-visible {
 
   border: 1px solid #e1ebe4;
 
-  border-radius: 12px;
+  border-radius: 14px;
 
-  background: white;
+  background: #ffffff;
 
-  box-shadow: 0 15px 50px rgba(17, 66, 42, 0.17);
+  box-shadow: 0 18px 50px rgba(17, 66, 42, 0.22);
+
+  animation: cartSlideDown 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes cartSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.cart-panel::-webkit-scrollbar {
+  width: 6px;
+}
+
+.cart-panel::-webkit-scrollbar-thumb {
+  background: #c2d6ca;
+  border-radius: 4px;
 }
 
 .cart-heading {
@@ -3894,6 +3934,44 @@ select:focus-visible {
 
 .auth-form input::placeholder {
   color: #a3b1a9;
+}
+
+.password-input-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-wrapper input {
+  padding-right: 44px !important;
+}
+
+.toggle-password-btn {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  color: #718b7e;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease;
+  line-height: 1;
+  z-index: 2;
+}
+
+.toggle-password-btn:hover {
+  color: #08a66a;
+}
+
+.toggle-password-btn:focus-visible {
+  outline: 2px solid #08a66a;
+  border-radius: 4px;
 }
 
 .form-group {

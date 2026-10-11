@@ -495,6 +495,18 @@ export default function HomePage() {
     loadAiRecommendations();
   }, [loadAiRecommendations]);
 
+  useEffect(() => {
+    function handleKeyDown(e) {
+      if (e.key === "Escape") {
+        setShowCart(false);
+      }
+    }
+    if (showCart) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [showCart]);
+
   const filteredProducts = useMemo(() => {
     const listToFilter = productsList.length > 0 ? productsList : products;
     return listToFilter.filter((product) => {
@@ -713,7 +725,7 @@ export default function HomePage() {
           </button>
 
           <button
-            className="header-action cart-action"
+            className={`header-action cart-action ${showCart ? "action-active" : ""}`}
             onClick={() => {
               setShowCart((value) => !value);
               setShowFavorites(false);
@@ -782,65 +794,72 @@ export default function HomePage() {
           CART
       ====================================================== */}
       {showCart && (
-        <div className="cart-panel">
-          <div className="cart-heading">
-            <h3>Giỏ hàng của bạn</h3>
+        <>
+          <div
+            className="cart-overlay"
+            onClick={() => setShowCart(false)}
+            aria-hidden="true"
+          />
+          <div className="cart-panel">
+            <div className="cart-heading">
+              <h3>Giỏ hàng của bạn</h3>
 
-            <button onClick={() => setShowCart(false)}>✕</button>
-          </div>
-
-          {cart.length === 0 ? (
-            <div className="cart-empty">
-              <span>🛒</span>
-
-              <p>Giỏ hàng đang trống.</p>
-
-              <button className="add-button" onClick={() => setShowCart(false)}>
-                Tiếp tục mua sắm
-              </button>
+              <button onClick={() => setShowCart(false)}>✕</button>
             </div>
-          ) : (
-            <>
-              {cart.map((item) => (
-                <div className="cart-item" key={item.id}>
-                  <span className="cart-item-emoji">{item.emoji}</span>
 
-                  <div className="cart-item-info">
-                    <strong>{item.name}</strong>
+            {cart.length === 0 ? (
+              <div className="cart-empty">
+                <span>🛒</span>
 
-                    <span>{money(item.price)}</span>
+                <p>Giỏ hàng đang trống.</p>
 
-                    <div className="quantity-controls">
-                      <button onClick={() => changeQuantity(item, -1)}>
-                        −
-                      </button>
+                <button className="add-button" onClick={() => setShowCart(false)}>
+                  Tiếp tục mua sắm
+                </button>
+              </div>
+            ) : (
+              <>
+                {cart.map((item) => (
+                  <div className="cart-item" key={item.id}>
+                    <span className="cart-item-emoji">{item.emoji}</span>
 
-                      <span>{item.quantity}</span>
+                    <div className="cart-item-info">
+                      <strong>{item.name}</strong>
 
-                      <button onClick={() => changeQuantity(item, 1)}>
-                        +
-                      </button>
+                      <span>{money(item.price)}</span>
+
+                      <div className="quantity-controls">
+                        <button onClick={() => changeQuantity(item, -1)}>
+                          −
+                        </button>
+
+                        <span>{item.quantity}</span>
+
+                        <button onClick={() => changeQuantity(item, 1)}>
+                          +
+                        </button>
+                      </div>
                     </div>
                   </div>
+                ))}
+
+                <div className="cart-total">
+                  <span>Tổng cộng</span>
+
+                  <strong>{money(cartTotal)}</strong>
                 </div>
-              ))}
 
-              <div className="cart-total">
-                <span>Tổng cộng</span>
-
-                <strong>{money(cartTotal)}</strong>
-              </div>
-
-              <button
-                className="checkout-button"
-                disabled={checkingOut}
-                onClick={handleCheckout}
-              >
-                {checkingOut ? "Đang xử lý đơn hàng..." : "Tiến hành đặt hàng →"}
-              </button>
-            </>
-          )}
-        </div>
+                <button
+                  className="checkout-button"
+                  disabled={checkingOut}
+                  onClick={handleCheckout}
+                >
+                  {checkingOut ? "Đang xử lý đơn hàng..." : "Tiến hành đặt hàng →"}
+                </button>
+              </>
+            )}
+          </div>
+        </>
       )}
 
       <main>
