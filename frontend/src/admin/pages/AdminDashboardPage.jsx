@@ -10,6 +10,8 @@ function AdminDashboardPage() {
     usersCount: 0,
     productsCount: 0,
     categoriesCount: 0,
+    ordersCount: 0,
+    pendingOrdersCount: 0,
     totalStock: 0,
   });
 
@@ -23,28 +25,35 @@ function AdminDashboardPage() {
           "Content-Type": "application/json",
         };
 
-        const [usersRes, productsRes, categoriesRes] = await Promise.all([
+        const [usersRes, productsRes, categoriesRes, ordersRes] = await Promise.all([
           fetch("http://localhost:8080/api/users", { headers }),
           fetch("http://localhost:8080/api/products", { headers }),
           fetch("http://localhost:8080/api/categories", { headers }),
+          fetch("http://localhost:8080/api/orders/admin", { headers }),
         ]);
 
         const usersData = usersRes.ok ? await usersRes.json() : [];
         const productsData = productsRes.ok ? await productsRes.json() : [];
         const categoriesData = categoriesRes.ok ? await categoriesRes.json() : [];
+        const ordersData = ordersRes.ok ? await ordersRes.json() : [];
 
         const usersList = Array.isArray(usersData) ? usersData : usersData?.content || [];
         const productsList = Array.isArray(productsData) ? productsData : productsData?.content || [];
         const categoriesList = Array.isArray(categoriesData) ? categoriesData : categoriesData?.content || [];
+        const ordersList = Array.isArray(ordersData) ? ordersData : [];
 
         const totalStock = productsList.reduce((acc, p) => {
           return acc + (Number(p.availableQuantity ?? p.stockQuantity ?? p.stock ?? 0) || 0);
         }, 0);
 
+        const pendingOrders = ordersList.filter((o) => o.status === "PENDING").length;
+
         setStats({
           usersCount: usersList.length,
           productsCount: productsList.length,
           categoriesCount: categoriesList.length,
+          ordersCount: ordersList.length,
+          pendingOrdersCount: pendingOrders,
           totalStock,
         });
       } catch (err) {
@@ -91,6 +100,15 @@ function AdminDashboardPage() {
             onClick={() => navigate("/admin")}
           >
             📊 Tổng quan
+          </button>
+
+          {/* QUẢN LÝ ĐƠN HÀNG */}
+          <button
+            type="button"
+            style={styles.menuItem}
+            onClick={() => navigate("/admin/orders")}
+          >
+            📋 Quản lý đơn hàng
           </button>
 
           {/* QUẢN LÝ TÀI KHOẢN */}
@@ -177,6 +195,24 @@ function AdminDashboardPage() {
             </div>
           </div>
 
+          {/* ĐƠN HÀNG */}
+          <div
+            style={styles.card}
+            onClick={() => navigate("/admin/orders")}
+            role="button"
+            tabIndex={0}
+          >
+            <div style={styles.cardIcon}>📋</div>
+
+            <div>
+              <p style={styles.cardLabel}>
+                Đơn hàng {stats.pendingOrdersCount > 0 ? `(${stats.pendingOrdersCount} chờ)` : ""}
+              </p>
+
+              <h2 style={styles.cardNumber}>{stats.ordersCount}</h2>
+            </div>
+          </div>
+
           {/* SẢN PHẨM */}
           <div
             style={styles.card}
@@ -239,6 +275,15 @@ function AdminDashboardPage() {
 
           {/* CÁC CHỨC NĂNG */}
           <div style={styles.quickActions}>
+            <button
+              type="button"
+              style={styles.quickButton}
+              onClick={() => navigate("/admin/orders")}
+            >
+              📋
+              <span>Quản lý đơn hàng</span>
+            </button>
+
             <button
               type="button"
               style={styles.quickButton}

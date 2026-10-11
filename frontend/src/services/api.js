@@ -91,8 +91,9 @@ export async function clearCartApi(token) {
 // ORDER & CHECKOUT APIs
 // ======================================================
 
-export async function checkoutOrderApi(token) {
-  return apiRequest("/orders/checkout", {
+export async function checkoutOrderApi(token, autoDeliver = false) {
+  const url = autoDeliver ? "/orders/checkout?autoDeliver=true" : "/orders/checkout";
+  return apiRequest(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
   });
@@ -100,6 +101,34 @@ export async function checkoutOrderApi(token) {
 
 export async function getMyOrdersApi(token) {
   return apiRequest("/orders", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getAllOrdersAdminApi(token) {
+  return apiRequest("/orders/admin", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function updateOrderStatusAdminApi(token, orderId, status) {
+  return apiRequest(`/orders/${orderId}/status`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function receiveOrderApi(token, orderId) {
+  return apiRequest(`/orders/${orderId}/receive`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function cancelOrderApi(token, orderId) {
+  return apiRequest(`/orders/${orderId}/cancel`, {
+    method: "PUT",
     headers: { Authorization: `Bearer ${token}` },
   });
 }

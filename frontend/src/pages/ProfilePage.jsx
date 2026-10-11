@@ -5,6 +5,8 @@ import {
   getMyLoyaltyApi,
   getLoyaltyTransactionsApi,
   getMyOrdersApi,
+  receiveOrderApi,
+  cancelOrderApi,
 } from "../services/api";
 import "../App.css";
 
@@ -83,33 +85,81 @@ export default function ProfilePage() {
   const [transactions, setTransactions] = useState([]);
   const [myOrders, setMyOrders] = useState([]);
 
-  useEffect(() => {
+  const loadLoyaltyAndOrders = useCallback(async () => {
     if (!token) return;
 
-    getMyLoyaltyApi(token)
-      .then((data) => {
-        if (data) {
-          setLoyalty({
-            tier: data.tier || "MEMBER",
-            points: data.points || 0,
-            totalSpend: Number(data.totalSpend) || 0,
-          });
-        }
-      })
-      .catch((err) => console.warn("Lỗi tải thông tin điểm:", err));
+    try {
+      const [loyaltyData, transData, ordersData] = await Promise.all([
+        getMyLoyaltyApi(token).catch((err) => {
+          console.warn("Lỗi tải thông tin điểm:", err);
+          return null;
+        }),
+        getLoyaltyTransactionsApi(token).catch((err) => {
+          console.warn("Lỗi tải lịch sử giao dịch:", err);
+          return [];
+        }),
+        getMyOrdersApi(token).catch((err) => {
+          console.warn("Lỗi tải đơn hàng:", err);
+          return [];
+        }),
+      ]);
 
-    getLoyaltyTransactionsApi(token)
-      .then((data) => {
-        if (Array.isArray(data)) setTransactions(data);
-      })
-      .catch((err) => console.warn("Lỗi tải lịch sử giao dịch điểm:", err));
+      if (loyaltyData) {
+        setLoyalty({
+          tier: loyaltyData.tier || "MEMBER",
+          points: loyaltyData.points || 0,
+          totalSpend: Number(loyaltyData.totalSpend) || 0,
+        });
+      }
 
-    getMyOrdersApi(token)
-      .then((data) => {
-        if (Array.isArray(data)) setMyOrders(data);
-      })
-      .catch((err) => console.warn("Lỗi tải đơn hàng:", err));
+      if (Array.isArray(transData)) setTransactions(transData);
+      if (Array.isArray(ordersData)) setMyOrders(ordersData);
+    } catch (err) {
+      console.warn("Lỗi nạp dữ liệu Profile:", err);
+    }
   }, [token]);
+
+  useEffect(() => {
+    loadLoyaltyAndOrders();
+  }, [loadLoyaltyAndOrders]);
+
+  async function handleReceiveOrder(orderId) {
+    if (!token) return;
+    if (
+      !window.confirm(
+        `Xác nhận bạn đã nhận được hàng cho đơn #${orderId}?\n\nĐiểm thưởng Loyalty sẽ được tích vào tài khoản của bạn ngay lập tức!`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await receiveOrderApi(token, orderId);
+      setMessage(`Đơn hàng #${orderId} đã hoàn tất. Điểm thưởng đã được tích vào ví của bạn!`);
+      await loadLoyaltyAndOrders();
+    } catch (err) {
+      setError(`Không thể xác nhận nhận hàng: ${err.message}`);
+    }
+  }
+
+  async function handleCancelOrder(orderId) {
+    if (!token) return;
+    if (
+      !window.confirm(
+        `Bạn có chắc muốn hủy đơn hàng #${orderId}?\n\nSố lượng sản phẩm sẽ được hoàn lại kho.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      await cancelOrderApi(token, orderId);
+      setMessage(`Đã hủy đơn hàng #${orderId} thành công.`);
+      await loadLoyaltyAndOrders();
+    } catch (err) {
+      setError(`Không thể hủy đơn: ${err.message}`);
+    }
+  }
 
   const membership = useMemo(
     () => getMembership(loyalty.tier, loyalty.totalSpend),
@@ -721,6 +771,55 @@ export default function ProfilePage() {
                             {money(order.totalAmount)}
                           </span>
                         </div>
+
+                        {/* Nút hành động đơn hàng cho khách */}
+                        {(order.status === "PENDING" || order.status === "SHIPPED") && (
+                          <div
+                            style={{
+                              display: "flex",
+                              gap: "10px",
+                              marginTop: "12px",
+                              justifyContent: "flex-end",
+                              borderTop: "1px dashed #e2e8f0",
+                              paddingTop: "10px",
+                            }}
+                          >
+                            {order.status === "PENDING" && (
+                              <button
+                                type="button"
+                                style={{
+                                  padding: "6px 12px",
+                                  borderRadius: "8px",
+                                  border: "1px solid #ef4444",
+                                  background: "#ffffff",
+                                  color: "#ef4444",
+                                  fontSize: "13px",
+                                  fontWeight: "600",
+                                  cursor: "pointer",
+                                }}
+                                onClick={() => handleCancelOrder(order.id)}
+                              >
+                                ❌ Hủy đơn
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              style={{
+                                padding: "6px 14px",
+                                borderRadius: "8px",
+                                border: "none",
+                                background: "#10b981",
+                                color: "#ffffff",
+                                fontSize: "13px",
+                                fontWeight: "700",
+                                cursor: "pointer",
+                              }}
+                              onClick={() => handleReceiveOrder(order.id)}
+                            >
+                              ✅ Đã nhận được hàng (Tích điểm ngay)
+                            </button>
+                          </div>
+                        )}
                       </div>
                     ))}
                   </div>

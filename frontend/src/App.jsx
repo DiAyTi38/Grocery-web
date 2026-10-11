@@ -22,6 +22,7 @@ import AdminUsersPage from "./admin/pages/AdminUsersPage";
 import AdminPointsPage from "./admin/pages/AdminPointsPage";
 import AdminProductsPage from "./admin/pages/AdminProductsPage";
 import AdminCategoriesPage from "./admin/pages/AdminCategoriesPage";
+import AdminOrdersPage from "./admin/pages/AdminOrdersPage";
 
 // ==================================================
 // ADMIN CSS
@@ -219,6 +220,18 @@ function AppRouter() {
           element={
             <AdminProtectedRoute>
               <AdminCategoriesPage />
+            </AdminProtectedRoute>
+          }
+        />
+
+        {/* ==================================================
+            QUẢN LÝ ĐƠN HÀNG
+        ================================================== */}
+        <Route
+          path="/admin/orders"
+          element={
+            <AdminProtectedRoute>
+              <AdminOrdersPage />
             </AdminProtectedRoute>
           }
         />
