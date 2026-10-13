@@ -293,7 +293,7 @@ public class AiService {
     private String resolveCategoryType(Product product) {
         if (product == null || product.getCategory() == null) return "FOOD";
         String categoryName = product.getCategory().getName().toLowerCase();
-        if (categoryName.contains("mỹ phẩm") || categoryName.contains("cosmetic")) {
+        if (categoryName.contains("sắc đẹp") || categoryName.contains("mỹ phẩm") || categoryName.contains("cosmetic") || categoryName.contains("beauty")) {
             return "COSMETIC";
         }
         if (categoryName.contains("gia dụng") || categoryName.contains("consumer")) {
@@ -307,28 +307,45 @@ public class AiService {
         String categoryName = product.getCategory() != null ? product.getCategory().getName().toLowerCase() : "";
         String productName = product.getName() != null ? product.getName().toLowerCase() : "";
 
+        // 1. Sắc đẹp / Mỹ phẩm: 30 ngày (Ưu tiên kiểm tra trước để tránh "sữa rửa mặt", "sữa tắm" bị nhận nhầm thành sữa uống)
+        if (categoryName.contains("sắc đẹp") || categoryName.contains("mỹ phẩm") || categoryName.contains("cosmetic") || categoryName.contains("beauty") ||
+                productName.contains("kem") || productName.contains("son") || productName.contains("serum") ||
+                productName.contains("rửa mặt") || productName.contains("sữa tắm") || productName.contains("dầu gội") ||
+                productName.contains("tẩy trang") || productName.contains("chống nắng")) {
+            return 30.0;
+        }
+
+        // 2. Rau củ quả: 3 ngày
         if (categoryName.contains("rau") || categoryName.contains("quả") ||
                 productName.contains("rau") || productName.contains("cải") || productName.contains("cà chua") || productName.contains("hành")) {
             return 3.0;
         }
+
+        // 3. Thịt - hải sản: 5 ngày
         if (categoryName.contains("thịt") || categoryName.contains("hải sản") ||
-                productName.contains("thịt") || productName.contains("cá") || productName.contains("trứng")) {
+                productName.contains("thịt") || productName.contains("cá")) {
             return 5.0;
         }
-        if (categoryName.contains("sữa") || categoryName.contains("trứng") ||
-                productName.contains("sữa") || productName.contains("nước")) {
-            return 7.0;
-        }
+
+        // 4. Đồ khô / Gia vị: 14 ngày
         if (categoryName.contains("đồ khô") || categoryName.contains("gia vị") ||
-                productName.contains("gạo") || productName.contains("dầu") || productName.contains("mắm") || productName.contains("muối") || productName.contains("đường")) {
+                productName.contains("gạo") || productName.contains("dầu") || productName.contains("mắm") ||
+                productName.contains("muối") || productName.contains("đường") || productName.contains("mì") ||
+                productName.contains("miến") || productName.contains("nêm") || productName.contains("nấm")) {
             return 14.0;
         }
-        if (categoryName.contains("mỹ phẩm") || categoryName.contains("cosmetic")) {
-            return 30.0;
+
+        // 5. Sữa & trứng: 7 ngày
+        if (categoryName.contains("sữa") || categoryName.contains("trứng") ||
+                productName.contains("sữa") || productName.contains("trứng") || productName.contains("nước")) {
+            return 7.0;
         }
+
+        // 6. Hàng tiêu dùng / gia dụng: 21 ngày
         if (categoryName.contains("gia dụng") || categoryName.contains("consumer")) {
             return 21.0;
         }
+
         return 7.0;
     }
 
