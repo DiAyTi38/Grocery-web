@@ -19,6 +19,18 @@ public interface PurchaseHistoryRepository extends JpaRepository<PurchaseHistory
     List<PurchaseHistory> findAllByUserIdOrderByPurchaseDateAsc(Long userId);
 
     /**
+     * Optimised query: load purchase history for a SINGLE product of a user.
+     * Avoids loading all products then filtering in-memory (N+1 problem).
+     */
+    @Query("""
+            SELECT ph FROM PurchaseHistory ph
+            JOIN FETCH ph.product
+            WHERE ph.user.id = :userId AND ph.product.id = :productId
+            ORDER BY ph.purchaseDate ASC
+            """)
+    List<PurchaseHistory> findAllByUserIdAndProductIdOrderByPurchaseDateAsc(Long userId, Long productId);
+
+    /**
      * Fallback query: Get top N best-selling products by total quantity sold.
      */
     @Query(value = """

@@ -29,6 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -36,6 +37,8 @@ import java.util.stream.Collectors;
 @Transactional
 @Slf4j
 public class AiService {
+
+    private static final BigDecimal EMBEDDED_CONFIDENCE = BigDecimal.valueOf(0.85);
 
     private final AiServiceClient aiServiceClient;
     private final AiPredictionRepository aiPredictionRepository;
@@ -97,12 +100,14 @@ public class AiService {
                                         .build())
                                 .toList();
 
+                        Product product = entry.getValue().get(0).getProduct();
+
                         return AiSchemas.PredictionRequest.builder()
                                 .userId(user.getId())
                                 .productId(entry.getKey())
                                 .purchases(purchases)
-                                .categoryType("FOOD")
-                                .reminderIntervalDays(7.0)
+                                .categoryType(resolveCategoryType(product))
+                                .reminderIntervalDays(resolveReminderIntervalDays(product))
                                 .build();
                     })
                     .toList();
@@ -110,25 +115,38 @@ public class AiService {
             if (!requests.isEmpty()) {
                 List<AiSchemas.PredictionResponse> aiResults = aiServiceClient.predictParallel(requests);
                 if (!aiResults.isEmpty()) {
+                    Map<Long, AiSchemas.PredictionResponse> aiResultMap = aiResults.stream()
+                            .collect(Collectors.toMap(AiSchemas.PredictionResponse::getProductId, r -> r, (a, b) -> a));
+
+                    List<AiPrediction> predictions = new ArrayList<>();
+                    for (Map.Entry<Long, List<PurchaseHistory>> entry : byProduct.entrySet()) {
+                        List<PurchaseHistory> purchases = entry.getValue();
+                        if (purchases.isEmpty()) continue;
+                        Product product = purchases.get(0).getProduct();
+                        AiSchemas.PredictionResponse aiRes = aiResultMap.get(entry.getKey());
+
+                        if (aiRes != null) {
+                            predictions.add(AiPrediction.builder()
+                                    .user(user)
+                                    .product(product)
+                                    .predictedNextDate(aiRes.getPredictedNextDate())
+                                    .confidence(BigDecimal.valueOf(aiRes.getConfidence()))
+                                    .type(AiPrediction.PredictionType.REPLENISHMENT)
+                                    .build());
+                        } else {
+                            // Product with < 2 purchases or AI failed for it -> use embedded fallback
+                            LocalDate nextDate = calculateNextReplenishmentDate(product, purchases);
+                            predictions.add(AiPrediction.builder()
+                                    .user(user)
+                                    .product(product)
+                                    .predictedNextDate(nextDate)
+                                    .confidence(EMBEDDED_CONFIDENCE)
+                                    .type(AiPrediction.PredictionType.REPLENISHMENT)
+                                    .build());
+                        }
+                    }
+
                     aiPredictionRepository.deleteAllByUserId(user.getId());
-
-                    List<AiPrediction> predictions = aiResults.stream()
-                            .map(result -> {
-                                Product product = productRepository.findById(result.getProductId())
-                                        .orElse(null);
-                                if (product == null) return null;
-
-                                return AiPrediction.builder()
-                                        .user(user)
-                                        .product(product)
-                                        .predictedNextDate(result.getPredictedNextDate())
-                                        .confidence(BigDecimal.valueOf(result.getConfidence()))
-                                        .type(AiPrediction.PredictionType.REPLENISHMENT)
-                                        .build();
-                            })
-                            .filter(Objects::nonNull)
-                            .toList();
-
                     aiPredictionRepository.saveAll(predictions);
                     return predictions.stream().map(this::toDto).toList();
                 }
@@ -166,27 +184,43 @@ public class AiService {
     }
 
     private void updatePredictionForProduct(User user, Product product) {
-        List<PurchaseHistory> history = purchaseHistoryRepository.findAllByUserIdOrderByPurchaseDateAsc(user.getId())
-                .stream()
-                .filter(ph -> ph.getProduct().getId().equals(product.getId()))
-                .toList();
+        List<PurchaseHistory> history = purchaseHistoryRepository
+                .findAllByUserIdAndProductIdOrderByPurchaseDateAsc(user.getId(), product.getId());
 
-        long cycleDays;
-        if (history.size() >= 2) {
-            long totalDays = 0;
-            for (int i = 0; i < history.size() - 1; i++) {
-                LocalDate d1 = history.get(i).getPurchaseDate().toLocalDate();
-                LocalDate d2 = history.get(i + 1).getPurchaseDate().toLocalDate();
-                totalDays += ChronoUnit.DAYS.between(d1, d2);
+        if (history.isEmpty()) return;
+
+        // 1. Nếu Python AI đang chạy và có >= 2 lần mua, gọi Python AI để nhất quán 100% với refreshPredictions
+        if (history.size() >= 2 && aiServiceClient.isHealthy()) {
+            List<AiSchemas.Purchase> purchases = history.stream()
+                    .map(ph -> AiSchemas.Purchase.builder()
+                            .productId(ph.getProduct().getId())
+                            .purchaseDate(ph.getPurchaseDate().toLocalDate())
+                            .quantity(ph.getQuantity())
+                            .build())
+                    .toList();
+
+            AiSchemas.PredictionRequest request = AiSchemas.PredictionRequest.builder()
+                    .userId(user.getId())
+                    .productId(product.getId())
+                    .purchases(purchases)
+                    .categoryType(resolveCategoryType(product))
+                    .reminderIntervalDays(resolveReminderIntervalDays(product))
+                    .build();
+
+            Optional<AiSchemas.PredictionResponse> response = aiServiceClient.predict(request);
+            if (response.isPresent()) {
+                AiSchemas.PredictionResponse aiResult = response.get();
+                saveOrUpdatePrediction(user, product, aiResult.getPredictedNextDate(), BigDecimal.valueOf(aiResult.getConfidence()));
+                return;
             }
-            double avg = (double) totalDays / (history.size() - 1);
-            cycleDays = Math.max(1, Math.round(avg));
-        } else {
-            cycleDays = getDefaultCycleDays(product);
         }
 
-        LocalDate nextDate = LocalDate.now().plusDays(cycleDays);
+        // 2. Fallback: Dùng Embedded Intelligent Engine chung (calculateNextReplenishmentDate)
+        LocalDate nextDate = calculateNextReplenishmentDate(product, history);
+        saveOrUpdatePrediction(user, product, nextDate, EMBEDDED_CONFIDENCE);
+    }
 
+    private void saveOrUpdatePrediction(User user, Product product, LocalDate nextDate, BigDecimal confidence) {
         AiPrediction prediction = aiPredictionRepository.findByUserIdAndProductId(user.getId(), product.getId())
                 .orElse(AiPrediction.builder()
                         .user(user)
@@ -195,7 +229,7 @@ public class AiService {
                         .build());
 
         prediction.setPredictedNextDate(nextDate);
-        prediction.setConfidence(BigDecimal.valueOf(0.85));
+        prediction.setConfidence(confidence);
         aiPredictionRepository.save(prediction);
     }
 
@@ -207,29 +241,13 @@ public class AiService {
             if (purchases.isEmpty()) continue;
 
             Product product = purchases.get(0).getProduct();
-            LocalDate lastPurchaseDate = purchases.get(purchases.size() - 1).getPurchaseDate().toLocalDate();
-
-            long cycleDays;
-            if (purchases.size() >= 2) {
-                long totalDays = 0;
-                for (int i = 0; i < purchases.size() - 1; i++) {
-                    LocalDate d1 = purchases.get(i).getPurchaseDate().toLocalDate();
-                    LocalDate d2 = purchases.get(i + 1).getPurchaseDate().toLocalDate();
-                    totalDays += ChronoUnit.DAYS.between(d1, d2);
-                }
-                double avg = (double) totalDays / (purchases.size() - 1);
-                cycleDays = Math.max(1, Math.round(avg));
-            } else {
-                cycleDays = getDefaultCycleDays(product);
-            }
-
-            LocalDate nextDate = lastPurchaseDate.plusDays(cycleDays);
+            LocalDate nextDate = calculateNextReplenishmentDate(product, purchases);
 
             predictions.add(AiPrediction.builder()
                     .user(user)
                     .product(product)
                     .predictedNextDate(nextDate)
-                    .confidence(BigDecimal.valueOf(0.85))
+                    .confidence(EMBEDDED_CONFIDENCE)
                     .type(AiPrediction.PredictionType.REPLENISHMENT)
                     .build());
         }
@@ -239,22 +257,78 @@ public class AiService {
         return predictions.stream().map(this::toDto).toList();
     }
 
+    private LocalDate calculateNextReplenishmentDate(Product product, List<PurchaseHistory> purchases) {
+        if (purchases == null || purchases.isEmpty()) {
+            return LocalDate.now().plusDays(getDefaultCycleDays(product));
+        }
+
+        LocalDate lastPurchaseDate = purchases.get(purchases.size() - 1).getPurchaseDate().toLocalDate();
+        long cycleDays;
+        if (purchases.size() >= 2) {
+            long totalDays = 0;
+            for (int i = 0; i < purchases.size() - 1; i++) {
+                LocalDate d1 = purchases.get(i).getPurchaseDate().toLocalDate();
+                LocalDate d2 = purchases.get(i + 1).getPurchaseDate().toLocalDate();
+                totalDays += ChronoUnit.DAYS.between(d1, d2);
+            }
+            double avg = (double) totalDays / (purchases.size() - 1);
+            cycleDays = Math.max(1, Math.round(avg));
+        } else {
+            cycleDays = getDefaultCycleDays(product);
+        }
+
+        return lastPurchaseDate.plusDays(cycleDays);
+    }
+
     private long getDefaultCycleDays(Product product) {
-        if (product == null || product.getName() == null) return 7;
-        String name = product.getName().toLowerCase();
-        if (name.contains("rau") || name.contains("cải") || name.contains("cà chua") || name.contains("hành")) {
-            return 3;
+        return Math.round(resolveReminderIntervalDays(product));
+    }
+
+    /**
+     * Resolve real categoryType and reminderIntervalDays from product's category.
+     * Maps category name → (categoryType for Python AI, reminderIntervalDays).
+     * Replaces hardcoded "FOOD" / 7.0 to match the training data distribution.
+     */
+    private String resolveCategoryType(Product product) {
+        if (product == null || product.getCategory() == null) return "FOOD";
+        String categoryName = product.getCategory().getName().toLowerCase();
+        if (categoryName.contains("mỹ phẩm") || categoryName.contains("cosmetic")) {
+            return "COSMETIC";
         }
-        if (name.contains("thịt") || name.contains("cá") || name.contains("trứng")) {
-            return 5;
+        if (categoryName.contains("gia dụng") || categoryName.contains("consumer")) {
+            return "CONSUMER";
         }
-        if (name.contains("sữa") || name.contains("nước")) {
-            return 7;
+        return "FOOD";
+    }
+
+    private double resolveReminderIntervalDays(Product product) {
+        if (product == null) return 7.0;
+        String categoryName = product.getCategory() != null ? product.getCategory().getName().toLowerCase() : "";
+        String productName = product.getName() != null ? product.getName().toLowerCase() : "";
+
+        if (categoryName.contains("rau") || categoryName.contains("quả") ||
+                productName.contains("rau") || productName.contains("cải") || productName.contains("cà chua") || productName.contains("hành")) {
+            return 3.0;
         }
-        if (name.contains("gạo") || name.contains("dầu") || name.contains("mắm") || name.contains("muối") || name.contains("đường")) {
-            return 14;
+        if (categoryName.contains("thịt") || categoryName.contains("hải sản") ||
+                productName.contains("thịt") || productName.contains("cá") || productName.contains("trứng")) {
+            return 5.0;
         }
-        return 7;
+        if (categoryName.contains("sữa") || categoryName.contains("trứng") ||
+                productName.contains("sữa") || productName.contains("nước")) {
+            return 7.0;
+        }
+        if (categoryName.contains("đồ khô") || categoryName.contains("gia vị") ||
+                productName.contains("gạo") || productName.contains("dầu") || productName.contains("mắm") || productName.contains("muối") || productName.contains("đường")) {
+            return 14.0;
+        }
+        if (categoryName.contains("mỹ phẩm") || categoryName.contains("cosmetic")) {
+            return 30.0;
+        }
+        if (categoryName.contains("gia dụng") || categoryName.contains("consumer")) {
+            return 21.0;
+        }
+        return 7.0;
     }
 
     /**
