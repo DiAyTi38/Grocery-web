@@ -24,6 +24,9 @@ const DEFAULT_CATEGORIES = [
   { name: "Sắc đẹp", icon: "🧴" },
 ];
 
+// Flag điều khiển hiển thị độ tin cậy AI (Đang bật để kiểm thử, sau này đổi thành false để ẩn)
+const SHOW_AI_CONFIDENCE = true;
+
 function getProductEmoji(name = "", category = "") {
   const n = String(name || "").toLowerCase();
   if (n.includes("cải") || n.includes("rau") || n.includes("bắp cải")) return "🥬";
@@ -989,6 +992,42 @@ export default function HomePage() {
                   }}
                 >
 
+                  {SHOW_AI_CONFIDENCE && item.confidence !== null && item.confidence !== undefined && (
+                    <span
+                      style={{
+                        position: "absolute",
+                        top: "12px",
+                        right: "12px",
+                        padding: "3px 8px",
+                        borderRadius: "12px",
+                        fontSize: "11px",
+                        fontWeight: "700",
+                        background:
+                          item.confidence >= 0.85
+                            ? "#ecfdf5"
+                            : item.confidence >= 0.7
+                            ? "#eff6ff"
+                            : "#fffbeb",
+                        color:
+                          item.confidence >= 0.85
+                            ? "#059669"
+                            : item.confidence >= 0.7
+                            ? "#2563eb"
+                            : "#d97706",
+                        border: `1px solid ${
+                          item.confidence >= 0.85
+                            ? "#a7f3d0"
+                            : item.confidence >= 0.7
+                            ? "#bfdbfe"
+                            : "#fde68a"
+                        }`,
+                      }}
+                      title={`Độ tin cậy mô hình AI: ${(item.confidence * 100).toFixed(1)}%`}
+                    >
+                      🎯 {Math.round(item.confidence * 100)}%
+                    </span>
+                  )}
+
                   <div>
                     <div style={{ fontSize: "40px", textAlign: "center", margin: "10px 0" }}>
                       {getProductEmoji(item.productName)}
@@ -996,7 +1035,7 @@ export default function HomePage() {
                     <h3 style={{ fontSize: "16px", margin: "0 0 6px", fontWeight: "700" }}>
                       {item.productName}
                     </h3>
-                    <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 14px" }}>
+                    <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 10px" }}>
                       {item.predictedDays !== null && item.predictedDays !== undefined ? (
                         item.predictedDays <= 0 ? (
                           <span style={{ color: "#ef4444", fontWeight: "700" }}>⚠️ Đã đến lúc mua lại!</span>
@@ -1009,6 +1048,38 @@ export default function HomePage() {
                         <span>Dự kiến: {item.predictedNextDate || "Hôm nay"}</span>
                       )}
                     </p>
+
+                    {SHOW_AI_CONFIDENCE && item.confidence !== null && item.confidence !== undefined && (
+                      <div
+                        style={{
+                          fontSize: "12px",
+                          color: "#64748b",
+                          marginBottom: "14px",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "space-between",
+                          background: "#f8fafc",
+                          padding: "5px 10px",
+                          borderRadius: "8px",
+                          border: "1px dashed #cbd5e1",
+                        }}
+                      >
+                        <span>Độ tin cậy AI:</span>
+                        <span
+                          style={{
+                            fontWeight: "700",
+                            color:
+                              item.confidence >= 0.85
+                                ? "#059669"
+                                : item.confidence >= 0.7
+                                ? "#2563eb"
+                                : "#d97706",
+                          }}
+                        >
+                          {Math.round(item.confidence * 100)}%
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <button
