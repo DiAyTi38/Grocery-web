@@ -12,7 +12,8 @@ public interface PurchaseHistoryRepository extends JpaRepository<PurchaseHistory
 
     @Query("""
             SELECT ph FROM PurchaseHistory ph
-            JOIN FETCH ph.product
+            JOIN FETCH ph.product p
+            JOIN FETCH p.category
             WHERE ph.user.id = :userId
             ORDER BY ph.purchaseDate ASC
             """)
@@ -24,7 +25,8 @@ public interface PurchaseHistoryRepository extends JpaRepository<PurchaseHistory
      */
     @Query("""
             SELECT ph FROM PurchaseHistory ph
-            JOIN FETCH ph.product
+            JOIN FETCH ph.product p
+            JOIN FETCH p.category
             WHERE ph.user.id = :userId AND ph.product.id = :productId
             ORDER BY ph.purchaseDate ASC
             """)

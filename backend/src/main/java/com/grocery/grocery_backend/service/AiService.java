@@ -72,6 +72,7 @@ public class AiService {
      * If Python AI is down/unavailable, falls back to Embedded Intelligent Engine
      * calculated directly from the user's purchase history and updates the database.
      */
+    @Transactional
     public List<AiPredictionDto> refreshPredictions(Authentication authentication) {
         User user = getUser(authentication.getName());
 
