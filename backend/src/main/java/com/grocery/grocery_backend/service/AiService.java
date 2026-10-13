@@ -231,7 +231,15 @@ public class AiService {
 
         prediction.setPredictedNextDate(nextDate);
         prediction.setConfidence(confidence);
-        aiPredictionRepository.save(prediction);
+        try {
+            aiPredictionRepository.save(prediction);
+        } catch (org.springframework.dao.DataIntegrityViolationException e) {
+            log.warn("Concurrent duplicate prediction detected for user {} and product {}, reloading to update", user.getId(), product.getId());
+            AiPrediction existing = aiPredictionRepository.findByUserIdAndProductId(user.getId(), product.getId()).orElse(prediction);
+            existing.setPredictedNextDate(nextDate);
+            existing.setConfidence(confidence);
+            aiPredictionRepository.save(existing);
+        }
     }
 
     private List<AiPredictionDto> calculateAndSaveEmbeddedPredictions(User user, Map<Long, List<PurchaseHistory>> byProduct) {
