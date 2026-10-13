@@ -290,7 +290,7 @@ public class AiService {
      * Maps category name → (categoryType for Python AI, reminderIntervalDays).
      * Replaces hardcoded "FOOD" / 7.0 to match the training data distribution.
      */
-    private String resolveCategoryType(Product product) {
+    String resolveCategoryType(Product product) {
         if (product == null || product.getCategory() == null) return "FOOD";
         String categoryName = product.getCategory().getName().toLowerCase();
         if (categoryName.contains("sắc đẹp") || categoryName.contains("mỹ phẩm") || categoryName.contains("cosmetic") || categoryName.contains("beauty")) {
@@ -302,7 +302,7 @@ public class AiService {
         return "FOOD";
     }
 
-    private double resolveReminderIntervalDays(Product product) {
+    double resolveReminderIntervalDays(Product product) {
         if (product == null) return 7.0;
         String categoryName = product.getCategory() != null ? product.getCategory().getName().toLowerCase() : "";
         String productName = product.getName() != null ? product.getName().toLowerCase() : "";
