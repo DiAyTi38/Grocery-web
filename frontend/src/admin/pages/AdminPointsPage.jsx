@@ -5,107 +5,138 @@ import "../admin.css";
 
 const money = (value) => `${(Number(value) || 0).toLocaleString("vi-VN")} ₫`;
 
-function getTier(spent) {
-  const amount = Number(spent) || 0;
-
-  if (amount >= 20000000) {
+function getTierInfo(tierName) {
+  const code = String(tierName || "").toUpperCase();
+  if (code === "GOLD") {
     return {
+      code: "GOLD",
       name: "Vàng (GOLD)",
       icon: "🥇",
       className: "gold",
     };
   }
-
-  if (amount >= 5000000) {
+  if (code === "SILVER") {
     return {
+      code: "SILVER",
       name: "Bạc (SILVER)",
       icon: "🥈",
       className: "silver",
     };
   }
-
   return {
+    code: "MEMBER",
     name: "Thành viên (MEMBER)",
     icon: "⭐",
     className: "default",
   };
 }
 
+function getTxTypeName(type) {
+  switch (type) {
+    case "EARN":
+      return "Tích điểm đơn hàng";
+    case "REDEEM":
+      return "Quy đổi / Dùng điểm";
+    case "UPGRADE":
+      return "Thưởng thăng hạng";
+    case "ADJUSTMENT":
+      return "Admin điều chỉnh";
+    default:
+      return type || "Giao dịch điểm";
+  }
+}
+
 export default function AdminPointsPage() {
   const navigate = useNavigate();
   const { token } = useAuth();
 
-  const [users, setUsers] = useState([]);
+  const [accounts, setAccounts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
   const [keyword, setKeyword] = useState("");
   const [tierFilter, setTierFilter] = useState("ALL");
 
-  const loadUsers = useCallback(async () => {
-    setLoading(true);
-    setError("");
+  // Modal Điều chỉnh điểm
+  const [adjustTarget, setAdjustTarget] = useState(null);
+  const [adjustPoints, setAdjustPoints] = useState("");
+  const [adjustReason, setAdjustReason] = useState("");
+  const [adjusting, setAdjusting] = useState(false);
+  const [adjustError, setAdjustError] = useState("");
 
-    try {
+  // Modal Lịch sử giao dịch điểm
+  const [historyTarget, setHistoryTarget] = useState(null);
+  const [historyTransactions, setHistoryTransactions] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState("");
+
+  const request = useCallback(
+    async (path, options = {}) => {
       if (!token) {
         throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
       }
 
-      const response = await fetch("http://localhost:8080/api/users", {
+      const response = await fetch(`http://localhost:8080/api${path}`, {
+        ...options,
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
+          ...options.headers,
         },
       });
 
-      const text = await response.text();
-      let result = null;
-
+      let data = null;
       try {
-        result = text ? JSON.parse(text) : null;
+        data = await response.json();
       } catch {
-        result = text;
+        data = null;
       }
 
       if (!response.ok) {
         throw new Error(
-          typeof result === "string"
-            ? result
-            : result?.message ||
-                result?.error ||
+          typeof data === "string"
+            ? data
+            : data?.message ||
+                data?.error ||
                 `Yêu cầu thất bại (HTTP ${response.status})`,
         );
       }
 
-      setUsers(
-        Array.isArray(result)
-          ? result
-          : result?.content || result?.users || result?.data || [],
-      );
+      return data;
+    },
+    [token],
+  );
+
+  const loadData = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const data = await request("/loyalty/admin/accounts");
+      const list = Array.isArray(data) ? data : data?.content || data?.data || [];
+      setAccounts(list);
     } catch (err) {
-      setError(err.message || "Không tải được thông tin thành viên.");
+      setError(err.message || "Không tải được dữ liệu điểm thành viên.");
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [request]);
 
   useEffect(() => {
-    loadUsers();
-  }, [loadUsers]);
+    loadData();
+  }, [loadData]);
 
-  const members = users.map((account) => ({
-    ...account,
-    spent: Number(account.totalSpent ?? account.total_spent ?? 0),
-  }));
-
-  const filtered = members.filter((account) => {
+  // Bộ lọc tìm kiếm & hạng
+  const filtered = accounts.filter((account) => {
     const search = keyword.toLowerCase().trim();
-    const tier = getTier(account.spent).name;
+    const tier = getTierInfo(account.tier).code;
 
     const searchableText = [
       account.username,
       account.fullName,
-      account.name,
       account.email,
-      account.id,
+      account.phone,
+      account.userId,
     ]
       .filter(Boolean)
       .join(" ")
@@ -117,19 +148,100 @@ export default function AdminPointsPage() {
     );
   });
 
-  const totalSpent = members.reduce((sum, account) => sum + account.spent, 0);
+  // Thống kê tổng hợp
+  const totalSpent = accounts.reduce(
+    (sum, a) => sum + (Number(a.totalSpend) || 0),
+    0,
+  );
+  const totalPoints = accounts.reduce(
+    (sum, a) => sum + (Number(a.points) || 0),
+    0,
+  );
 
   const tierCounts = {
-    gold: members.filter(
-      (account) => getTier(account.spent).className === "gold",
-    ).length,
-    silver: members.filter(
-      (account) => getTier(account.spent).className === "silver",
-    ).length,
-    member: members.filter(
-      (account) => getTier(account.spent).className === "default",
-    ).length,
+    gold: accounts.filter((a) => (a.tier || "").toUpperCase() === "GOLD").length,
+    silver: accounts.filter((a) => (a.tier || "").toUpperCase() === "SILVER").length,
+    member: accounts.filter((a) => (a.tier || "").toUpperCase() === "MEMBER").length,
   };
+
+  // Mở modal điều chỉnh điểm
+  function openAdjust(account) {
+    setAdjustTarget(account);
+    setAdjustPoints("");
+    setAdjustReason("");
+    setAdjustError("");
+  }
+
+  function closeAdjust() {
+    if (adjusting) return;
+    setAdjustTarget(null);
+    setAdjustPoints("");
+    setAdjustReason("");
+    setAdjustError("");
+  }
+
+  async function handleAdjustSubmit(e) {
+    e.preventDefault();
+    if (!adjustTarget) return;
+
+    const delta = Number(adjustPoints);
+    if (!Number.isInteger(delta) || delta === 0) {
+      setAdjustError("Vui lòng nhập số điểm hợp lệ khác 0 (ví dụ: +50 hoặc -20).");
+      return;
+    }
+
+    if (!adjustReason.trim()) {
+      setAdjustError("Vui lòng nhập lý do điều chỉnh điểm.");
+      return;
+    }
+
+    setAdjusting(true);
+    setAdjustError("");
+
+    try {
+      await request("/loyalty/admin/adjust", {
+        method: "POST",
+        body: JSON.stringify({
+          userId: adjustTarget.userId,
+          points: delta,
+          reason: adjustReason.trim(),
+        }),
+      });
+
+      setSuccess(
+        `Đã điều chỉnh ${delta > 0 ? `+${delta}` : delta} điểm cho thành viên "${adjustTarget.fullName || adjustTarget.username}".`,
+      );
+      closeAdjust();
+      await loadData();
+    } catch (err) {
+      setAdjustError(err.message || "Không thể điều chỉnh điểm thành viên.");
+    } finally {
+      setAdjusting(false);
+    }
+  }
+
+  // Mở modal lịch sử điểm
+  async function openHistory(account) {
+    setHistoryTarget(account);
+    setHistoryTransactions([]);
+    setHistoryLoading(true);
+    setHistoryError("");
+
+    try {
+      const data = await request(`/loyalty/admin/transactions/${account.userId}`);
+      setHistoryTransactions(Array.isArray(data) ? data : []);
+    } catch (err) {
+      setHistoryError(err.message || "Không tải được lịch sử tích điểm của thành viên.");
+    } finally {
+      setHistoryLoading(false);
+    }
+  }
+
+  function closeHistory() {
+    setHistoryTarget(null);
+    setHistoryTransactions([]);
+    setHistoryError("");
+  }
 
   return (
     <main className="admin-page">
@@ -145,72 +257,72 @@ export default function AdminPointsPage() {
           </button>
 
           <p className="admin-page__eyebrow">SMART GROCERY / QUẢN TRỊ</p>
-
-          <h1 className="admin-page__title">Quản lý điểm thành viên</h1>
-
+          <h1 className="admin-page__title">Quản lý điểm & hạng thành viên</h1>
           <p className="admin-page__subtitle">
-            Theo dõi tổng chi tiêu và phân hạng khách hàng thân thiết.
+            Theo dõi điểm tích lũy, tổng chi tiêu thực tế và điều chỉnh điểm khách hàng.
           </p>
         </div>
 
         <button
           className="admin-page__button admin-page__button--secondary"
           type="button"
-          onClick={loadUsers}
+          onClick={loadData}
           disabled={loading}
         >
           ↻ {loading ? "Đang tải..." : "Làm mới dữ liệu"}
         </button>
       </header>
 
+      {/* Thẻ thống kê tổng quan */}
       <section className="admin-page__stats">
         <article className="admin-page__stat">
           <span className="admin-page__stat-label">Tổng thành viên</span>
           <strong className="admin-page__stat-value">
-            {users.length.toLocaleString("vi-VN")}
+            {accounts.length.toLocaleString("vi-VN")}
           </strong>
           <span className="admin-page__stat-note">
-            Tài khoản được tải từ hệ thống
+            Tài khoản trong hệ thống
           </span>
         </article>
 
         <article className="admin-page__stat">
-          <span className="admin-page__stat-label">Tổng chi tiêu ghi nhận</span>
+          <span className="admin-page__stat-label">Tổng chi tiêu thực tế</span>
           <strong className="admin-page__stat-value admin-points-money">
             {money(totalSpent)}
           </strong>
           <span className="admin-page__stat-note">
-            Tổng giá trị từ dữ liệu thành viên
+            Tích lũy từ các đơn hàng thành công
           </span>
         </article>
 
         <article className="admin-page__stat">
-          <span className="admin-page__stat-label">Hạng Vàng (GOLD)</span>
-          <strong className="admin-page__stat-value">
-            {tierCounts.gold.toLocaleString("vi-VN")}
+          <span className="admin-page__stat-label">Tổng điểm lưu hành</span>
+          <strong className="admin-page__stat-value" style={{ color: "#176b40" }}>
+            {totalPoints.toLocaleString("vi-VN")} ⭐
           </strong>
           <span className="admin-page__stat-note">
-            Chi tiêu tích lũy từ 20 triệu đồng
+            Điểm tích lũy hiện có của khách
           </span>
         </article>
 
         <article className="admin-page__stat">
-          <span className="admin-page__stat-label">Hạng Bạc (SILVER)</span>
+          <span className="admin-page__stat-label">Hạng Vàng & Bạc</span>
           <strong className="admin-page__stat-value">
-            {tierCounts.silver.toLocaleString("vi-VN")}
+            {(tierCounts.gold + tierCounts.silver).toLocaleString("vi-VN")}
           </strong>
           <span className="admin-page__stat-note">
-            Chi tiêu tích lũy từ 5 triệu đồng
+            🥇 {tierCounts.gold} Vàng • 🥈 {tierCounts.silver} Bạc
           </span>
         </article>
       </section>
 
+      {/* Thẻ thông tin các hạng thành viên */}
       <section className="admin-page__panel admin-points-tier-panel">
         <div className="admin-page__panel-header">
           <div>
-            <h2 className="admin-page__panel-title">Các hạng thành viên</h2>
+            <h2 className="admin-page__panel-title">Phân hạng khách hàng</h2>
             <p className="admin-page__panel-subtitle">
-              Hạng được xác định tự động theo tổng chi tiêu mua sắm của khách.
+              Hạng được nâng tự động khi chi tiêu đạt mốc: 10.000 ₫ = 1 điểm tích lũy.
             </p>
           </div>
         </div>
@@ -220,7 +332,7 @@ export default function AdminPointsPage() {
             <span className="admin-points-tier-icon">🥇</span>
             <div>
               <strong>Vàng (GOLD)</strong>
-              <p>Từ 20.000.000 ₫</p>
+              <p>Chi tiêu từ 20.000.000 ₫ • Thưởng 200 điểm</p>
               <span>{tierCounts.gold} thành viên</span>
             </div>
           </article>
@@ -229,7 +341,7 @@ export default function AdminPointsPage() {
             <span className="admin-points-tier-icon">🥈</span>
             <div>
               <strong>Bạc (SILVER)</strong>
-              <p>Từ 5.000.000 ₫ đến dưới 20.000.000 ₫</p>
+              <p>Chi tiêu từ 5.000.000 ₫ • Thưởng 50 điểm</p>
               <span>{tierCounts.silver} thành viên</span>
             </div>
           </article>
@@ -238,20 +350,12 @@ export default function AdminPointsPage() {
             <span className="admin-points-tier-icon">⭐</span>
             <div>
               <strong>Thành viên (MEMBER)</strong>
-              <p>Dưới 5.000.000 ₫</p>
+              <p>Chi tiêu dưới 5.000.000 ₫</p>
               <span>{tierCounts.member} thành viên</span>
             </div>
           </article>
         </div>
       </section>
-
-      <div className="admin-page__message admin-points-notice">
-        <strong>Lưu ý về dữ liệu:</strong> Hạng thành viên được tính từ trường{" "}
-        <code>totalSpent</code> hoặc <code>total_spent</code> do backend trả về.
-        Nếu API chưa lưu tổng chi tiêu, các thành viên có thể đều hiển thị hạng
-        chưa xếp hạng. Trang này chỉ xem dữ liệu, chưa thay đổi điểm hoặc chi
-        tiêu trong database.
-      </div>
 
       {error && (
         <div
@@ -262,10 +366,20 @@ export default function AdminPointsPage() {
         </div>
       )}
 
+      {success && !error && (
+        <div
+          className="admin-page__message admin-page__message--success"
+          role="status"
+        >
+          {success}
+        </div>
+      )}
+
+      {/* Bảng danh sách thành viên */}
       <section className="admin-page__panel">
         <div className="admin-page__panel-header">
           <div>
-            <h2 className="admin-page__panel-title">Danh sách thành viên</h2>
+            <h2 className="admin-page__panel-title">Danh sách tài khoản điểm</h2>
             <p className="admin-page__panel-subtitle">
               {filtered.length} kết quả phù hợp với điều kiện tìm kiếm.
             </p>
@@ -277,7 +391,7 @@ export default function AdminPointsPage() {
             <input
               className="admin-page__input"
               aria-label="Tìm thành viên"
-              placeholder="⌕  Tìm theo tên, username hoặc email..."
+              placeholder="⌕  Tìm theo tên, username, email hoặc SĐT..."
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
             />
@@ -291,9 +405,9 @@ export default function AdminPointsPage() {
               onChange={(e) => setTierFilter(e.target.value)}
             >
               <option value="ALL">Tất cả hạng</option>
-              <option value="Thành viên (MEMBER)">Thành viên (MEMBER)</option>
-              <option value="Bạc (SILVER)">Bạc (SILVER)</option>
-              <option value="Vàng (GOLD)">Vàng (GOLD)</option>
+              <option value="GOLD">🥇 Vàng (GOLD)</option>
+              <option value="SILVER">🥈 Bạc (SILVER)</option>
+              <option value="MEMBER">⭐ Thành viên (MEMBER)</option>
             </select>
           </div>
         </div>
@@ -301,8 +415,8 @@ export default function AdminPointsPage() {
         {loading ? (
           <div className="admin-page__empty">
             <div className="admin-page__empty-icon">⏳</div>
-            <h3>Đang tải thành viên</h3>
-            <p>Đang lấy thông tin khách hàng từ hệ thống...</p>
+            <h3>Đang tải dữ liệu điểm</h3>
+            <p>Đang đồng bộ thông tin khách hàng từ hệ thống...</p>
           </div>
         ) : filtered.length === 0 ? (
           <div className="admin-page__empty">
@@ -328,23 +442,24 @@ export default function AdminPointsPage() {
               <thead>
                 <tr>
                   <th>Thành viên</th>
-                  <th>Email</th>
+                  <th>Liên hệ</th>
+                  <th>Hạng</th>
+                  <th>Điểm tích lũy</th>
                   <th>Tổng chi tiêu</th>
-                  <th>Hạng thành viên</th>
+                  <th style={{ textAlign: "right" }}>Thao tác</th>
                 </tr>
               </thead>
 
               <tbody>
-                {filtered.map((account, index) => {
-                  const tier = getTier(account.spent);
+                {filtered.map((account) => {
+                  const tier = getTierInfo(account.tier);
                   const displayName =
-                    account.fullName ||
-                    account.name ||
-                    account.username ||
-                    "Chưa cập nhật";
+                    account.fullName || account.username || "Chưa cập nhật";
+                  const points = Number(account.points) || 0;
+                  const spend = Number(account.totalSpend) || 0;
 
                   return (
-                    <tr key={account.id ?? account.userId ?? index}>
+                    <tr key={account.userId}>
                       <td>
                         <div className="admin-page__product">
                           <div className="admin-points-avatar">
@@ -356,16 +471,17 @@ export default function AdminPointsPage() {
                               {displayName}
                             </div>
                             <div className="admin-page__muted">
-                              @{account.username || "chưa có username"}
+                              Mã KH: #{account.userId} • @{account.username}
                             </div>
                           </div>
                         </div>
                       </td>
 
-                      <td>{account.email || "—"}</td>
-
                       <td>
-                        <strong>{money(account.spent)}</strong>
+                        <div>{account.email || "—"}</div>
+                        <div className="admin-page__muted">
+                          {account.phone ? `SĐT: ${account.phone}` : "Chưa có SĐT"}
+                        </div>
                       </td>
 
                       <td>
@@ -376,6 +492,51 @@ export default function AdminPointsPage() {
                           {tier.name}
                         </span>
                       </td>
+
+                      <td>
+                        <strong
+                          style={{
+                            color: points > 0 ? "#176b40" : "#65736b",
+                            fontSize: "15px",
+                          }}
+                        >
+                          {points.toLocaleString("vi-VN")} điểm
+                        </strong>
+                      </td>
+
+                      <td>
+                        <strong>{money(spend)}</strong>
+                      </td>
+
+                      <td style={{ textAlign: "right" }}>
+                        <div
+                          className="admin-page__actions"
+                          style={{ justifyContent: "flex-end" }}
+                        >
+                          <button
+                            className="admin-page__action"
+                            type="button"
+                            onClick={() => openHistory(account)}
+                            title="Xem lịch sử tích và dùng điểm"
+                          >
+                            Lịch sử
+                          </button>
+
+                          <button
+                            className="admin-page__action"
+                            type="button"
+                            onClick={() => openAdjust(account)}
+                            style={{
+                              borderColor: "#176b40",
+                              color: "#176b40",
+                              background: "#f0fdf4",
+                            }}
+                            title="Cộng hoặc trừ điểm cho thành viên"
+                          >
+                            ± Điều chỉnh
+                          </button>
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -384,6 +545,250 @@ export default function AdminPointsPage() {
           </div>
         )}
       </section>
+
+      {/* Modal Điều chỉnh điểm */}
+      {adjustTarget && (
+        <div className="admin-page__modal-backdrop" onClick={closeAdjust}>
+          <section
+            className="admin-page__modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="adjust-points-title"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 520 }}
+          >
+            <h2 id="adjust-points-title">Điều chỉnh điểm thành viên</h2>
+            <p className="admin-page__modal-description">
+              Cộng hoặc trừ điểm thưởng/bồi hoàn cho khách hàng{" "}
+              <strong>{adjustTarget.fullName || adjustTarget.username}</strong>.
+            </p>
+
+            <div
+              style={{
+                background: "#f7f9f8",
+                padding: "12px 16px",
+                borderRadius: 8,
+                marginBottom: 16,
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+              }}
+            >
+              <span>Điểm hiện tại:</span>
+              <strong style={{ fontSize: 16, color: "#176b40" }}>
+                {(Number(adjustTarget.points) || 0).toLocaleString("vi-VN")} điểm
+              </strong>
+            </div>
+
+            {adjustError && (
+              <div
+                className="admin-page__message admin-page__message--error"
+                role="alert"
+                style={{ marginBottom: 16 }}
+              >
+                {adjustError}
+              </div>
+            )}
+
+            <form onSubmit={handleAdjustSubmit}>
+              <div className="admin-page__form-grid">
+                <div className="admin-page__field admin-page__field--full">
+                  <label htmlFor="adjust-points-input">
+                    Số điểm thay đổi * (nhập số âm để trừ, dương để cộng)
+                  </label>
+                  <input
+                    id="adjust-points-input"
+                    className="admin-page__input"
+                    type="number"
+                    step="1"
+                    required
+                    placeholder="Ví dụ: 50 hoặc -20"
+                    value={adjustPoints}
+                    onChange={(e) => setAdjustPoints(e.target.value)}
+                  />
+                  {adjustPoints !== "" && Number.isInteger(Number(adjustPoints)) && (
+                    <small style={{ color: "#637269", marginTop: 4, display: "block" }}>
+                      Điểm sau điều chỉnh:{" "}
+                      <strong>
+                        {Math.max(
+                          0,
+                          (Number(adjustTarget.points) || 0) + Number(adjustPoints),
+                        ).toLocaleString("vi-VN")}{" "}
+                        điểm
+                      </strong>
+                    </small>
+                  )}
+                </div>
+
+                <div className="admin-page__field admin-page__field--full">
+                  <label htmlFor="adjust-reason-input">Lý do điều chỉnh *</label>
+                  <input
+                    id="adjust-reason-input"
+                    className="admin-page__input"
+                    type="text"
+                    required
+                    placeholder="Ví dụ: Bồi hoàn CSKH, Khuyến mãi sinh nhật..."
+                    value={adjustReason}
+                    onChange={(e) => setAdjustReason(e.target.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="admin-page__form-actions" style={{ marginTop: 24 }}>
+                <button
+                  className="admin-page__button admin-page__button--secondary"
+                  type="button"
+                  onClick={closeAdjust}
+                  disabled={adjusting}
+                >
+                  Hủy
+                </button>
+
+                <button
+                  className="admin-page__button"
+                  type="submit"
+                  disabled={adjusting}
+                >
+                  {adjusting ? "Đang xử lý..." : "Xác nhận điều chỉnh"}
+                </button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {/* Modal Lịch sử giao dịch điểm */}
+      {historyTarget && (
+        <div className="admin-page__modal-backdrop" onClick={closeHistory}>
+          <section
+            className="admin-page__modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="history-points-title"
+            onClick={(e) => e.stopPropagation()}
+            style={{ maxWidth: 700 }}
+          >
+            <h2 id="history-points-title">Lịch sử tích & dùng điểm</h2>
+            <p className="admin-page__modal-description">
+              Chi tiết các giao dịch điểm của thành viên{" "}
+              <strong>{historyTarget.fullName || historyTarget.username}</strong>{" "}
+              (Mã KH: #{historyTarget.userId}).
+            </p>
+
+            {historyError && (
+              <div
+                className="admin-page__message admin-page__message--error"
+                role="alert"
+              >
+                {historyError}
+              </div>
+            )}
+
+            {historyLoading ? (
+              <div style={{ textAlign: "center", padding: "30px 0" }}>
+                <p>⏳ Đang tải lịch sử giao dịch...</p>
+              </div>
+            ) : historyTransactions.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "30px 0", color: "#637269" }}>
+                <p>Khách hàng chưa có phát sinh giao dịch điểm nào.</p>
+              </div>
+            ) : (
+              <div
+                className="admin-page__table-wrap"
+                style={{ maxHeight: 360, overflowY: "auto" }}
+              >
+                <table className="admin-page__table">
+                  <thead>
+                    <tr>
+                      <th>Thời gian</th>
+                      <th>Loại giao dịch</th>
+                      <th>Biến động</th>
+                      <th>Nội dung / Mô tả</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {historyTransactions.map((tx) => {
+                      const isPositive = (tx.points || 0) >= 0;
+                      return (
+                        <tr key={tx.id}>
+                          <td style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+                            {tx.createdAt
+                              ? new Date(tx.createdAt).toLocaleString("vi-VN")
+                              : "—"}
+                          </td>
+                          <td>
+                            <span
+                              style={{
+                                fontSize: 12,
+                                fontWeight: 700,
+                                padding: "3px 8px",
+                                borderRadius: 6,
+                                background:
+                                  tx.type === "EARN"
+                                    ? "#dcfce7"
+                                    : tx.type === "UPGRADE"
+                                      ? "#fef3c7"
+                                      : tx.type === "ADJUSTMENT"
+                                        ? "#e0e7ff"
+                                        : "#fee2e2",
+                                color:
+                                  tx.type === "EARN"
+                                    ? "#166534"
+                                    : tx.type === "UPGRADE"
+                                      ? "#92400e"
+                                      : tx.type === "ADJUSTMENT"
+                                        ? "#3730a3"
+                                        : "#991b1b",
+                              }}
+                            >
+                              {getTxTypeName(tx.type)}
+                            </span>
+                          </td>
+                          <td>
+                            <strong
+                              style={{
+                                color: isPositive ? "#16a34a" : "#dc2626",
+                                fontSize: 14,
+                              }}
+                            >
+                              {isPositive ? `+${tx.points}` : tx.points}
+                            </strong>
+                          </td>
+                          <td style={{ fontSize: 13 }}>
+                            {tx.description || "—"}
+                            {tx.orderId && (
+                              <span
+                                style={{
+                                  display: "inline-block",
+                                  marginLeft: 6,
+                                  color: "#0284c7",
+                                  fontSize: 12,
+                                }}
+                              >
+                                (Đơn #{tx.orderId})
+                              </span>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="admin-page__form-actions" style={{ marginTop: 20 }}>
+              <button
+                className="admin-page__button admin-page__button--secondary"
+                type="button"
+                onClick={closeHistory}
+              >
+                Đóng
+              </button>
+            </div>
+          </section>
+        </div>
+      )}
     </main>
   );
 }

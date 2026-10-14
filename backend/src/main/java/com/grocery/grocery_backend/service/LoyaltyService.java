@@ -1,5 +1,7 @@
 package com.grocery.grocery_backend.service;
 
+import com.grocery.grocery_backend.model.dto.AdminLoyaltyAccountDto;
+import com.grocery.grocery_backend.model.dto.AdjustPointsRequest;
 import com.grocery.grocery_backend.model.dto.LoyaltyAccountDto;
 import com.grocery.grocery_backend.model.dto.LoyaltyTransactionDto;
 import com.grocery.grocery_backend.model.entity.LoyaltyAccount;
@@ -55,6 +57,75 @@ public class LoyaltyService {
         User user = getUser(authentication.getName());
         List<LoyaltyTransaction> transactions = loyaltyTransactionRepository.findByUserIdOrderByCreatedAtDesc(user.getId());
         return transactions.stream().map(this::toDto).collect(Collectors.toList());
+    }
+
+    /**
+     * Admin: Retrieve all user loyalty accounts with profile info
+     */
+    @Transactional
+    public List<AdminLoyaltyAccountDto> getAllLoyaltyAccountsForAdmin() {
+        return userRepository.findAll().stream().map(user -> {
+            LoyaltyAccount account = getOrCreateAccount(user);
+            return AdminLoyaltyAccountDto.builder()
+                    .userId(user.getId())
+                    .username(user.getUsername())
+                    .fullName(user.getFullName())
+                    .email(user.getEmail())
+                    .phone(user.getPhone())
+                    .tier(account.getTier().name())
+                    .points(account.getPoints())
+                    .totalSpend(account.getTotalSpend())
+                    .updatedAt(account.getUpdatedAt())
+                    .build();
+        }).collect(Collectors.toList());
+    }
+
+    /**
+     * Admin: Adjust loyalty points manually for a user (positive or negative)
+     */
+    @Transactional
+    public AdminLoyaltyAccountDto adjustPoints(AdjustPointsRequest request, String adminUsername) {
+        User user = userRepository.findById(request.getUserId())
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        LoyaltyAccount account = getOrCreateAccount(user);
+
+        int newPoints = Math.max(0, account.getPoints() + request.getPoints());
+        account.setPoints(newPoints);
+
+        String description = (request.getReason() != null && !request.getReason().isBlank())
+                ? "Điều chỉnh bởi admin [" + adminUsername + "]: " + request.getReason().trim()
+                : "Điều chỉnh bởi admin [" + adminUsername + "]";
+
+        createTransaction(account, null, request.getPoints(), LoyaltyTransaction.TransactionType.ADJUSTMENT, description);
+        loyaltyAccountRepository.save(account);
+
+        log.info("Admin {} adjusted loyalty points for user {} by {} (reason: {}). New points: {}",
+                adminUsername, user.getUsername(), request.getPoints(), request.getReason(), account.getPoints());
+
+        return AdminLoyaltyAccountDto.builder()
+                .userId(user.getId())
+                .username(user.getUsername())
+                .fullName(user.getFullName())
+                .email(user.getEmail())
+                .phone(user.getPhone())
+                .tier(account.getTier().name())
+                .points(account.getPoints())
+                .totalSpend(account.getTotalSpend())
+                .updatedAt(account.getUpdatedAt())
+                .build();
+    }
+
+    /**
+     * Admin: Get transaction history for a specific user
+     */
+    @Transactional(readOnly = true)
+    public List<LoyaltyTransactionDto> getUserTransactionsForAdmin(Long userId) {
+        userRepository.findById(userId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found"));
+        return loyaltyTransactionRepository.findByUserIdOrderByCreatedAtDesc(userId)
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
     /**
