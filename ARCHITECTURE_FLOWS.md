@@ -97,13 +97,43 @@
      - **Khả năng chịu lỗi (Fault-Tolerance):** Mỗi request có timeout 5s, nếu 1 sản phẩm gặp lỗi/timeout sẽ được bắt qua `onErrorResume` và bỏ qua, không làm gián đoạn các sản phẩm thành công còn lại.
   4. Lưu kết quả từ Python trả về vào DB (`ai_predictions`) với ràng buộc `UNIQUE (user_id, product_id)` chống trùng lặp dữ liệu (Flyway V10), và clear/cập nhật bản ghi tương ứng.
 - **Kiểm soát Trạng thái Sản phẩm (Active/Inactive Enforcement):**
-  - *Luồng Cache (`getRecommendations`):* Query `findAllByUserIdOrderByConfidenceDesc` ràng buộc `p.active = TRUE`, đảm bảo sản phẩm đã ngừng kinh doanh không bao giờ hiển thị trên UI gợi ý.
-  - *Luồng Làm mới (`refreshPredictions`):* Lọc bỏ hoàn toàn các sản phẩm `p.active = false` trước khi phân nhóm và gửi sang AI, tiết kiệm tài nguyên suy luận.
-- **Cơ chế Fallback Đa tầng (Cascading Fallback):** 
-  - *Cấp sản phẩm:* Nếu Python AI không trả về kết quả cho 1 mặt hàng cụ thể, hệ thống fallback sang thuật toán nội tại Java (`calculateNextReplenishmentDate`).
-  - *Cấp hệ thống (Top Selling Recommendation):*
-    - **Tầng 1 (Lịch sử bán chạy):** Truy vấn `purchase_history` với điều kiện `INNER JOIN products p ON ph.product_id = p.id WHERE p.active = 1` để lấy đúng Top 5 sản phẩm bán chạy nhất *đang hoạt động*, tránh tình trạng thiếu hụt sản phẩm do lọc ở tầng Java.
-    - **Tầng 2 (Cold Start Tuyệt đối):** Nếu hệ thống mới tinh hoặc lịch sử mua hàng chỉ có $< 5$ sản phẩm active, hệ thống tự động bù đắp bằng các sản phẩm active mới nhất từ `productRepository.findTop5ByActiveTrueOrderByIdDesc()` để luôn đảm bảo hiển thị đủ 5 sản phẩm.
+  - *Luồng Cache (`getRecommendations`):* Query `findAllByUserIdOrderByConfidenceDesc` ràng buộc `p.active = TRUE`, đảm bảo sản phẩm đã ngừng kinh doanh (inactive) không bao giờ hiển thị trên UI gợi ý của người dùng.
+  - *Luồng Làm mới (`refreshPredictions`):* Lọc bỏ hoàn toàn các sản phẩm `p.active = false` trước khi phân nhóm và gửi sang AI, tránh lãng phí tài nguyên suy luận của mô hình cho mặt hàng không thể bán.
+
+- **Cơ chế Fallback Đa tầng (Cascading Fallback Architecture):**
+  Khi xảy ra sự cố hoặc người dùng thiếu dữ liệu, hệ thống tự động kích hoạt Fallback theo các cấp độ:
+
+  1. **Fallback Cấp Sản phẩm (Per-Product Fallback):**
+     - Áp dụng khi Python AI sập cho 1 mặt hàng cụ thể, hoặc sản phẩm chỉ mới mua 1 lần (< 2 đơn hàng).
+     - Hệ thống tự động chuyển sang thuật toán nội tại Java (`calculateNextReplenishmentDate`), tính toán chu kỳ dựa trên `reminderIntervalDays` động của danh mục (Ví dụ: Rau củ 3 ngày, Đồ khô 14 ngày).
+
+  2. **Fallback Cấp Hệ thống (System-Wide Fallback - `getFallbackTopSelling`):**
+     - **Điều kiện kích hoạt:**
+       - Người dùng mới chưa từng có lịch sử mua hàng (Cold Start tuyệt đối).
+       - Người dùng từng mua hàng nhưng toàn bộ mặt hàng đó đã bị vô hiệu hóa (`active = false`).
+       - Dịch vụ Python AI sập (`healthCheck() == false`) hoặc timeout mạng > 10s.
+     - **Quy trình xử lý 2 tầng (Two-Tier Cascading):**
+       - **Tầng 1 (Best-selling Active Products):**
+         - Truy vấn `purchase_history` bằng SQL Native tối ưu:
+           ```sql
+           SELECT ph.product_id, SUM(ph.quantity) AS total_qty
+           FROM purchase_history ph
+           INNER JOIN products p ON ph.product_id = p.id
+           WHERE p.active = 1
+           GROUP BY ph.product_id
+           ORDER BY total_qty DESC
+           LIMIT :limit
+           ```
+         - Ràng buộc `p.active = 1` được thực thi trực tiếp tại MySQL. Điều này giải quyết triệt để lỗi hụt số lượng (nếu lọc bằng Java sau khi `LIMIT 5`, danh sách có thể bị rớt xuống còn 2-3 sản phẩm hoặc 0 sản phẩm nếu các mặt hàng bán chạy nhất lịch sử đã ngừng bán).
+         - Kiểm tra an toàn lớp hai: `product != null && product.isActive()`.
+       - **Tầng 2 (Catalog Active Supplemental - Chống cạn kiệt Cold Start):**
+         - Nếu kết quả Tầng 1 trả về `< 5` sản phẩm (do hệ thống mới khởi tạo hoặc ít giao dịch), hệ thống tự động gọi `productRepository.findTop5ByActiveTrueOrderByIdDesc()` để lấy các sản phẩm active mới nhất trong kho hàng.
+         - Sử dụng cấu trúc `Set<Long> productIds` để **khử trùng lặp (Deduplication)**, lần lượt bù đắp các sản phẩm active mới vào danh sách cho đến khi đủ 5 sản phẩm.
+     - **Quy chuẩn DTO Fallback trả về:**
+       - `predictedNextDate = LocalDate.now().plusDays(7)`
+       - `predictedDays = 7.0`
+       - `confidence = 0.5` (Độ tin cậy mức trung bình)
+       - `type = "RECOMMENDATION"` (Phân biệt rõ với type `"REPLENISHMENT"` do AI cá nhân hóa).
 
 ## Luồng 7: Khách hàng thân thiết (Loyalty Module) (Đang triển khai)
 - **Mục tiêu:** Tích điểm mua hàng và thăng hạng thành viên.
