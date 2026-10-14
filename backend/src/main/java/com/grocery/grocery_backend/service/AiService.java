@@ -41,6 +41,8 @@ import java.util.stream.Collectors;
 public class AiService {
 
     private static final BigDecimal EMBEDDED_CONFIDENCE = BigDecimal.valueOf(0.85);
+    private static final long MAX_OVERDUE_DAYS = 7; // Quy tắc 1: Trễ tối đa 7 ngày trước khi bị loại khỏi gợi ý mua lại
+    private static final double DECAY_WINDOW_DAYS = 7.0; // Quy tắc 2: Cửa sổ phạt suy giảm độ tin cậy theo thời gian
 
     private final AiServiceClient aiServiceClient;
     private final AiPredictionRepository aiPredictionRepository;
@@ -50,22 +52,17 @@ public class AiService {
 
     /**
      * Get AI recommendations for current user.
-     * 1. Try to return cached predictions from DB.
-     * 2. If no cached predictions, try calling Python AI service (parallel).
-     * 3. If AI service is down or no data, fallback to top selling products.
+     * Áp dụng Bộ 3 quy tắc xử lý Staleness & Overdue:
+     * - Quy tắc 1: Loại bỏ dự đoán quá hạn > 7 ngày.
+     * - Quy tắc 2: Phạt giảm dần độ tin cậy theo thời gian quá hạn (Time-Decay).
+     * - Quy tắc 3: Bù đắp Fallback nếu số lượng gợi ý hợp lệ < 5.
      */
     @Transactional(readOnly = true)
     public List<AiPredictionDto> getRecommendations(Authentication authentication) {
         User user = getUser(authentication.getName());
 
-        // Check cached predictions in DB
         List<AiPrediction> cached = aiPredictionRepository.findAllByUserIdOrderByConfidenceDesc(user.getId());
-        if (!cached.isEmpty()) {
-            return cached.stream().map(this::toDto).toList();
-        }
-
-        // No cached predictions — fallback to top selling
-        return getFallbackTopSelling();
+        return formatAndSupplementPredictions(cached);
     }
 
     /**
@@ -157,7 +154,7 @@ public class AiService {
 
                     aiPredictionRepository.deleteAllByUserId(user.getId());
                     aiPredictionRepository.saveAll(predictions);
-                    return predictions.stream().map(this::toDto).toList();
+                    return formatAndSupplementPredictions(predictions);
                 }
             }
         }
@@ -271,7 +268,7 @@ public class AiService {
 
         aiPredictionRepository.deleteAllByUserId(user.getId());
         aiPredictionRepository.saveAll(predictions);
-        return predictions.stream().map(this::toDto).toList();
+        return formatAndSupplementPredictions(predictions);
     }
 
     private LocalDate calculateNextReplenishmentDate(Product product, List<PurchaseHistory> purchases) {
@@ -414,6 +411,33 @@ public class AiService {
         return dto;
     }
 
+    private List<AiPredictionDto> formatAndSupplementPredictions(List<AiPrediction> predictions) {
+        if (predictions == null) {
+            predictions = List.of();
+        }
+
+        // Quy tắc 1 (Overdue Cut-off) & Quy tắc 2 (Time-Decay qua toDto):
+        List<AiPredictionDto> valid = predictions.stream()
+                .map(this::toDto)
+                .filter(dto -> dto.getPredictedDays() == null || dto.getPredictedDays() >= -MAX_OVERDUE_DAYS)
+                .toList();
+
+        // Quy tắc 3 (Fallback Replacement): Bù đắp sản phẩm active bán chạy nếu danh sách < 5
+        List<AiPredictionDto> results = new ArrayList<>(valid);
+        if (results.size() < 5) {
+            Set<Long> existingIds = results.stream().map(AiPredictionDto::getProductId).collect(Collectors.toSet());
+            List<AiPredictionDto> fallbackItems = getFallbackTopSelling();
+            for (AiPredictionDto fb : fallbackItems) {
+                if (results.size() >= 5) break;
+                if (!existingIds.contains(fb.getProductId())) {
+                    results.add(fb);
+                    existingIds.add(fb.getProductId());
+                }
+            }
+        }
+        return results;
+    }
+
     /**
      * Check if Python AI service is alive.
      */
@@ -427,14 +451,25 @@ public class AiService {
         dto.setProductName(prediction.getProduct().getName());
         dto.setProductImageUrl(prediction.getProduct().getImageUrl());
         dto.setPredictedNextDate(prediction.getPredictedNextDate());
-        
-        // Tính toán số ngày còn lại (predictedDays) để không bị null
+
+        double baseConfidence = prediction.getConfidence() != null ? prediction.getConfidence().doubleValue() : 0.5;
+
+        // Tính toán số ngày còn lại (predictedDays) và Quy tắc 2 (Time-Decay Penalty)
         if (prediction.getPredictedNextDate() != null) {
             long daysBetween = java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), prediction.getPredictedNextDate());
             dto.setPredictedDays((double) daysBetween);
+
+            if (daysBetween < 0) {
+                // Phạt giảm dần độ tin cậy theo thời gian quá hạn (Time-Decay)
+                double decayFactor = Math.max(0.0, 1.0 - (Math.abs(daysBetween) / DECAY_WINDOW_DAYS));
+                dto.setConfidence(Math.round(baseConfidence * decayFactor * 100.0) / 100.0);
+            } else {
+                dto.setConfidence(baseConfidence);
+            }
+        } else {
+            dto.setConfidence(baseConfidence);
         }
-        
-        dto.setConfidence(prediction.getConfidence().doubleValue());
+
         dto.setType(prediction.getType().name());
         return dto;
     }

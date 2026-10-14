@@ -135,6 +135,22 @@
        - `confidence = 0.5` (Độ tin cậy mức trung bình)
        - `type = "RECOMMENDATION"` (Phân biệt rõ với type `"REPLENISHMENT"` do AI cá nhân hóa).
 
+- **Bộ 3 Quy tắc Xử lý Hạn dùng & Quá hạn Dự báo (Staleness & Overdue Triple-Layer Policy):**
+  Khi ngày dự kiến mua lại (`predictedNextDate`) trôi về quá khứ so với thời gian thực tế (`LocalDate.now()`), hệ thống áp dụng cơ chế 3 tầng xử lý:
+
+  1. **Quy tắc 1 (Overdue Cut-off Threshold):**
+     - Thiết lập ngưỡng cắt `MAX_OVERDUE_DAYS = 7`.
+     - Nếu một sản phẩm đã quá hạn dự kiến vượt quá 7 ngày (`predictedDays < -7`), sản phẩm đó bị coi là **thói quen tiêu dùng đã chấm dứt (Churned Habit)** và bị loại bỏ hoàn toàn khỏi khối "Nhắc mua lại định kỳ". Không bao giờ hiển thị các con số ngày âm sâu phi lý (`-30 ngày`, `-60 ngày`) lên giao diện người dùng.
+
+  2. **Quy tắc 2 (Time-Decay Penalty on Confidence):**
+     - Xử lý trực tiếp tại tầng chuyển đổi DTO của Backend (`toDto`) để bảo đảm tính **thời gian thực tuyệt đối**:
+       $$\text{Confidence}_{\text{hiệu lực}} = \text{Base Confidence} \times \max\left(0, 1 - \frac{|\text{predictedDays}|}{7.0}\right)$$
+     - Khi sản phẩm trễ từ 1 đến 7 ngày, độ tin cậy bị khấu trừ tuyến tính theo từng ngày trôi qua (Badge UI tự động chuyển dần từ xanh lá $\rightarrow$ xanh dương $\rightarrow$ cam hổ phách).
+
+  3. **Quy tắc 3 (Fallback Replacement & Quản lý vòng đời):**
+     - Khi các sản phẩm quá hạn bị loại bỏ khiến danh sách gợi ý còn ít hơn 5 sản phẩm, hệ thống tự động kích hoạt Fallback Đa tầng để bù đắp các sản phẩm bán chạy đang hoạt động (Top-Selling Active) vào danh sách, đảm bảo khách hàng luôn nhận đủ 5 gợi ý chất lượng.
+     - **Theo dõi thời gian cập nhật:** Bổ sung cột `updated_at TIMESTAMP` trên bảng `ai_predictions` (Flyway Migration V11) để theo dõi chính xác mốc thời gian cập nhật dự đoán gần nhất của từng bản ghi.
+
 ## Luồng 7: Khách hàng thân thiết (Loyalty Module) (Đang triển khai)
 - **Mục tiêu:** Tích điểm mua hàng và thăng hạng thành viên.
 - **Thành phần:** `LoyaltyAccount`, `LoyaltyTransaction`.
