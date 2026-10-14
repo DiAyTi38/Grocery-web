@@ -52,6 +52,56 @@ function money(value) {
   }).format(value);
 }
 
+function getTransactionMeta(type, points) {
+  switch (type) {
+    case "EARN":
+      return {
+        label: "Tích điểm đơn hàng",
+        icon: "🛒",
+        bg: "#ecfdf5",
+        color: "#059669",
+        badgeBg: "#d1fae5",
+        badgeColor: "#065f46",
+      };
+    case "UPGRADE":
+      return {
+        label: "Thưởng thăng hạng",
+        icon: "🎁",
+        bg: "#fef3c7",
+        color: "#d97706",
+        badgeBg: "#fde68a",
+        badgeColor: "#92400e",
+      };
+    case "ADJUSTMENT":
+      return {
+        label: "Admin điều chỉnh",
+        icon: "⚖️",
+        bg: "#ede9fe",
+        color: "#7c3aed",
+        badgeBg: "#ddd6fe",
+        badgeColor: "#5b21b6",
+      };
+    case "REDEEM":
+      return {
+        label: "Đổi / Tiêu điểm",
+        icon: "🏷️",
+        bg: "#fee2e2",
+        color: "#dc2626",
+        badgeBg: "#fecaca",
+        badgeColor: "#991b1b",
+      };
+    default:
+      return {
+        label: points >= 0 ? "Cộng điểm" : "Trừ điểm",
+        icon: points >= 0 ? "⭐" : "🏷️",
+        bg: points >= 0 ? "#ecfdf5" : "#fee2e2",
+        color: points >= 0 ? "#059669" : "#dc2626",
+        badgeBg: points >= 0 ? "#d1fae5" : "#fecaca",
+        badgeColor: points >= 0 ? "#065f46" : "#991b1b",
+      };
+  }
+}
+
 export default function ProfilePage() {
   const navigate = useNavigate();
   const { user, token, updateProfile, changePassword } = useAuth();
@@ -278,10 +328,6 @@ export default function ProfilePage() {
       </div>
 
       <main className="profile-container container">
-        <div className="profile-breadcrumb">
-          Trang chủ / <strong>Tài khoản của tôi</strong>
-        </div>
-
         <div className="profile-layout">
           <aside className="profile-sidebar">
             <div className="profile-user-mini">
@@ -633,39 +679,93 @@ export default function ProfilePage() {
                 </div>
 
                 {/* LỊCH SỬ GIAO DỊCH TÍCH ĐIỂM */}
-                <div style={{ marginTop: "30px" }}>
-                  <h3 style={{ fontSize: "16px", marginBottom: "12px", fontWeight: "700" }}>
-                    📜 Lịch sử tích điểm
-                  </h3>
+                <div className="loyalty-history-box">
+                  <div className="loyalty-history-header">
+                    <div className="loyalty-history-title-group">
+                      <h3>📜 Lịch sử tích & tiêu điểm</h3>
+                      <span className="loyalty-history-count">
+                        {transactions.length} giao dịch
+                      </span>
+                    </div>
+
+                    {transactions.length > 0 && (
+                      <div className="loyalty-history-summary">
+                        Điểm hiện có: <strong>{loyalty.points} ⭐</strong>
+                      </div>
+                    )}
+                  </div>
+
                   {transactions.length === 0 ? (
-                    <p style={{ color: "#64748b", fontSize: "14px" }}>
-                      Chưa có giao dịch tích điểm nào. Hãy đặt hàng để tích điểm ngay!
-                    </p>
+                    <div className="loyalty-history-empty">
+                      <div className="loyalty-history-empty-icon">🎁</div>
+                      <h4>Chưa có giao dịch tích điểm nào</h4>
+                      <p>
+                        Mỗi đơn hàng hoàn thành sẽ tự động tích điểm vào tài khoản của bạn để đổi quà và thăng hạng!
+                      </p>
+                      <button
+                        type="button"
+                        className="loyalty-history-empty-btn"
+                        onClick={() => navigate("/")}
+                      >
+                        🛒 Bắt đầu mua sắm ngay
+                      </button>
+                    </div>
                   ) : (
-                    <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-                      {transactions.map((t) => (
-                        <div
-                          key={t.id}
-                          style={{
-                            display: "flex",
-                            justifyContent: "space-between",
-                            padding: "12px 16px",
-                            background: "#f8fafc",
-                            borderRadius: "10px",
-                            border: "1px solid #e2e8f0",
-                          }}
-                        >
-                          <div>
-                            <strong>{t.description || `Đơn hàng #${t.orderId}`}</strong>
-                            <div style={{ fontSize: "12px", color: "#64748b" }}>
-                              {t.createdAt ? new Date(t.createdAt).toLocaleString("vi-VN") : "Gần đây"}
+                    <div className="loyalty-history-list">
+                      {transactions.map((t) => {
+                        const isPositive = (t.points || 0) >= 0;
+                        const meta = getTransactionMeta(t.type, t.points);
+                        return (
+                          <div key={t.id} className="loyalty-history-item">
+                            <div className="loyalty-history-left">
+                              <div
+                                className="loyalty-history-icon"
+                                style={{ background: meta.bg, color: meta.color }}
+                              >
+                                {meta.icon}
+                              </div>
+
+                              <div className="loyalty-history-info">
+                                <div className="loyalty-history-name-row">
+                                  <strong className="loyalty-history-desc" title={t.description || (t.orderId ? `Tích điểm từ đơn hàng #${t.orderId}` : meta.label)}>
+                                    {t.description || (t.orderId ? `Tích điểm từ đơn hàng #${t.orderId}` : meta.label)}
+                                  </strong>
+                                  <span
+                                    className="loyalty-history-badge"
+                                    style={{ background: meta.badgeBg, color: meta.badgeColor }}
+                                  >
+                                    {meta.label}
+                                  </span>
+                                </div>
+
+                                <div className="loyalty-history-meta">
+                                  <span className="loyalty-history-time">
+                                    🕒 {t.createdAt ? new Date(t.createdAt).toLocaleString("vi-VN", {
+                                      year: "numeric",
+                                      month: "2-digit",
+                                      day: "2-digit",
+                                      hour: "2-digit",
+                                      minute: "2-digit",
+                                    }) : "Gần đây"}
+                                  </span>
+
+                                  {t.orderId && (
+                                    <span className="loyalty-history-order-tag">
+                                      Đơn hàng #{t.orderId}
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+
+                            <div className="loyalty-history-right">
+                              <span className={`loyalty-history-points ${isPositive ? "is-plus" : "is-minus"}`}>
+                                {isPositive ? `+${t.points}` : t.points} <small>điểm</small>
+                              </span>
                             </div>
                           </div>
-                          <span style={{ color: "#10b981", fontWeight: "700", fontSize: "16px" }}>
-                            +{t.points} điểm
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>

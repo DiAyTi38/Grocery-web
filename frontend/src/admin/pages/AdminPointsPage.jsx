@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "../admin.css";
 
@@ -47,7 +46,6 @@ function getTxTypeName(type) {
 }
 
 export default function AdminPointsPage() {
-  const navigate = useNavigate();
   const { token } = useAuth();
 
   const [accounts, setAccounts] = useState([]);
@@ -247,15 +245,6 @@ export default function AdminPointsPage() {
     <main className="admin-page">
       <header className="admin-page__header">
         <div>
-          <button
-            className="admin-page__button admin-page__button--secondary"
-            type="button"
-            onClick={() => navigate("/admin")}
-            style={{ marginBottom: 20 }}
-          >
-            ← Quay lại Dashboard
-          </button>
-
           <p className="admin-page__eyebrow">SMART GROCERY / QUẢN TRỊ</p>
           <h1 className="admin-page__title">Quản lý điểm & hạng thành viên</h1>
           <p className="admin-page__subtitle">
@@ -695,15 +684,15 @@ export default function AdminPointsPage() {
             ) : (
               <div
                 className="admin-page__table-wrap"
-                style={{ maxHeight: 360, overflowY: "auto" }}
+                style={{ maxHeight: 380, overflowY: "auto", border: "1px solid #e2e8f0", borderRadius: 10 }}
               >
-                <table className="admin-page__table">
+                <table className="admin-page__table" style={{ minWidth: "100%" }}>
                   <thead>
                     <tr>
-                      <th>Thời gian</th>
-                      <th>Loại giao dịch</th>
-                      <th>Biến động</th>
-                      <th>Nội dung / Mô tả</th>
+                      <th style={{ textAlign: "left", paddingLeft: 16, width: "170px" }}>Thời gian</th>
+                      <th style={{ textAlign: "center", width: "170px" }}>Loại giao dịch</th>
+                      <th style={{ textAlign: "right", width: "120px" }}>Biến động</th>
+                      <th style={{ textAlign: "left", paddingLeft: 16 }}>Nội dung / Mô tả</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -711,18 +700,25 @@ export default function AdminPointsPage() {
                       const isPositive = (tx.points || 0) >= 0;
                       return (
                         <tr key={tx.id}>
-                          <td style={{ fontSize: 13, whiteSpace: "nowrap" }}>
+                          <td style={{ fontSize: 13, whiteSpace: "nowrap", textAlign: "left", paddingLeft: 16 }}>
                             {tx.createdAt
-                              ? new Date(tx.createdAt).toLocaleString("vi-VN")
+                              ? new Date(tx.createdAt).toLocaleString("vi-VN", {
+                                  year: "numeric",
+                                  month: "2-digit",
+                                  day: "2-digit",
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                })
                               : "—"}
                           </td>
-                          <td>
+                          <td style={{ textAlign: "center" }}>
                             <span
                               style={{
                                 fontSize: 12,
                                 fontWeight: 700,
-                                padding: "3px 8px",
+                                padding: "4px 10px",
                                 borderRadius: 6,
+                                display: "inline-block",
                                 background:
                                   tx.type === "EARN"
                                     ? "#dcfce7"
@@ -739,33 +735,53 @@ export default function AdminPointsPage() {
                                       : tx.type === "ADJUSTMENT"
                                         ? "#3730a3"
                                         : "#991b1b",
+                                border: `1px solid ${
+                                  tx.type === "EARN"
+                                    ? "#bbf7d0"
+                                    : tx.type === "UPGRADE"
+                                      ? "#fde68a"
+                                      : tx.type === "ADJUSTMENT"
+                                        ? "#c7d2fe"
+                                        : "#fecaca"
+                                }`,
                               }}
                             >
                               {getTxTypeName(tx.type)}
                             </span>
                           </td>
-                          <td>
-                            <strong
+                          <td style={{ textAlign: "right" }}>
+                            <span
                               style={{
-                                color: isPositive ? "#16a34a" : "#dc2626",
-                                fontSize: 14,
+                                display: "inline-block",
+                                padding: "3px 10px",
+                                borderRadius: 16,
+                                fontWeight: 800,
+                                fontSize: 13,
+                                background: isPositive ? "#ecfdf5" : "#fef2f2",
+                                color: isPositive ? "#059669" : "#dc2626",
+                                border: `1px solid ${isPositive ? "#a7f3d0" : "#fecaca"}`,
                               }}
                             >
                               {isPositive ? `+${tx.points}` : tx.points}
-                            </strong>
+                            </span>
                           </td>
-                          <td style={{ fontSize: 13 }}>
+                          <td style={{ fontSize: 13, textAlign: "left", paddingLeft: 16 }}>
                             {tx.description || "—"}
                             {tx.orderId && (
                               <span
                                 style={{
                                   display: "inline-block",
-                                  marginLeft: 6,
-                                  color: "#0284c7",
-                                  fontSize: 12,
+                                  marginLeft: 8,
+                                  color: "#0369a1",
+                                  background: "#f0f9ff",
+                                  border: "1px solid #bae6fd",
+                                  padding: "2px 7px",
+                                  borderRadius: 4,
+                                  fontSize: 11,
+                                  fontWeight: 700,
                                 }}
                               >
-                                (Đơn #{tx.orderId})
+                                Đơn #{tx.orderId}
                               </span>
                             )}
                           </td>

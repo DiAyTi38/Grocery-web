@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "../admin.css";
 
@@ -26,7 +25,6 @@ const getProductStock = (product) =>
   );
 
 export default function AdminProductsPage() {
-  const navigate = useNavigate();
   const { token } = useAuth();
 
   const [products, setProducts] = useState([]);
@@ -302,15 +300,6 @@ export default function AdminProductsPage() {
     <main className="admin-page">
       <header className="admin-page__header">
         <div>
-          <button
-            className="admin-page__button admin-page__button--secondary"
-            onClick={() => navigate("/admin")}
-            type="button"
-            style={{ marginBottom: 20 }}
-          >
-            ← Quay lại Dashboard
-          </button>
-
           <p className="admin-page__eyebrow">SMART GROCERY / QUẢN TRỊ</p>
           <h1 className="admin-page__title">Quản lý sản phẩm</h1>
           <p className="admin-page__subtitle">

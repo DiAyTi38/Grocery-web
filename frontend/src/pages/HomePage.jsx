@@ -1,4 +1,4 @@
-import { useMemo, useState, useEffect, useCallback } from "react";
+import { useMemo, useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { useAuth } from "../context/AuthContext";
@@ -349,6 +349,135 @@ function ProductCard({ product, onAdd, favorite, onFavorite }) {
   );
 }
 
+function getConfidencePercent(item) {
+  const c = Number(item?.confidence);
+  if (isNaN(c)) return 0;
+  const p = c <= 1 ? c * 100 : c;
+  return Math.round(p);
+}
+
+function formatPredictionDate(dateStr) {
+  if (!dateStr) return "";
+  try {
+    const parts = String(dateStr).split("-");
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}`;
+    }
+    return dateStr;
+  } catch {
+    return dateStr;
+  }
+}
+
+function AiReplenishmentRow({
+  title,
+  tierClass,
+  badgeStyle,
+  items,
+  onAddToCart,
+  productsList,
+}) {
+  const sliderRef = useRef(null);
+
+  const handleScroll = (offset) => {
+    if (sliderRef.current) {
+      sliderRef.current.scrollBy({ left: offset, behavior: "smooth" });
+    }
+  };
+
+  return (
+    <div className={`ai-row-container ${tierClass}`}>
+      <div className="ai-row-header">
+        <h3 className="ai-row-title" style={{ color: badgeStyle.kickerColor, margin: 0, fontSize: "14px", fontWeight: "700" }}>
+          {title}
+        </h3>
+        {items.length > 2 && (
+          <div className="ai-row-controls">
+            <button
+              type="button"
+              className="ai-row-arrow"
+              onClick={() => handleScroll(-205)}
+              aria-label="Cuộn sang trái"
+              title="Cuộn sang trái"
+            >
+              ◀
+            </button>
+            <button
+              type="button"
+              className="ai-row-arrow"
+              onClick={() => handleScroll(205)}
+              aria-label="Cuộn sang phải"
+              title="Cuộn sang phải"
+            >
+              ▶
+            </button>
+          </div>
+        )}
+      </div>
+
+      <div className="ai-row-slider" ref={sliderRef}>
+        {items.map((item) => {
+          const prod =
+            productsList.find((p) => p.id === item.productId) || {
+              id: item.productId,
+              name: item.productName,
+            };
+          const price = prod?.price;
+
+          return (
+            <div key={item.productId} className="ai-product-card">
+              <div className="ai-card-image-wrap">
+                {item.productImageUrl ? (
+                  <img src={item.productImageUrl} alt={item.productName} />
+                ) : (
+                  <span>{getProductEmoji(item.productName)}</span>
+                )}
+              </div>
+
+              <div className="ai-card-body">
+                <h4 className="ai-card-name" title={item.productName}>
+                  {item.productName}
+                </h4>
+
+                <p className="ai-card-prediction">
+                  {item.predictedDays !== null && item.predictedDays !== undefined ? (
+                    item.predictedDays <= 0 ? (
+                      <span style={{ color: "#ef4444", fontWeight: "700" }}>
+                        ⚠️ Cần mua ngay {item.predictedNextDate ? `(${formatPredictionDate(item.predictedNextDate)})` : "(Hôm nay)"}
+                      </span>
+                    ) : (
+                      <span>
+                        Dự kiến mua sau: <b>{Math.round(item.predictedDays)} ngày</b> {item.predictedNextDate ? `(${formatPredictionDate(item.predictedNextDate)})` : ""}
+                      </span>
+                    )
+                  ) : (
+                    <span>Dự kiến: <b>{item.predictedNextDate ? formatPredictionDate(item.predictedNextDate) : "Hôm nay"}</b></span>
+                  )}
+                </p>
+
+                {price ? (
+                  <div className="ai-card-price-row">
+                    <span className="ai-card-price">{money(price)}</span>
+                    {prod?.unit && <span className="ai-card-unit">/{prod.unit}</span>}
+                  </div>
+                ) : null}
+              </div>
+
+              <button
+                type="button"
+                className="ai-card-button"
+                onClick={() => onAddToCart(prod)}
+              >
+                🛒 Mua lại ngay
+              </button>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function HomePage() {
   const navigate = useNavigate();
   const { user, token, logout } = useAuth();
@@ -525,6 +654,30 @@ export default function HomePage() {
       return matchesCategory && matchesSearch && matchesFavorite;
     });
   }, [productsList, category, activeSearch, showFavorites, favorites]);
+
+  // Phân loại gợi ý mua lại AI thành các nhóm:
+  // - Hàng 1: từ 85% đến 100% (sắp xếp giảm dần từ lớn đến bé)
+  // - Hàng 2: từ 70% đến 85% (sắp xếp giảm dần từ lớn đến bé)
+  // - Dưới 70%: không hiển thị
+  const tier1AiList = useMemo(() => {
+    return (aiRecommendations || [])
+      .filter((item) => {
+        const p = getConfidencePercent(item);
+        return p >= 85 && p <= 100;
+      })
+      .sort((a, b) => getConfidencePercent(b) - getConfidencePercent(a));
+  }, [aiRecommendations]);
+
+  const tier2AiList = useMemo(() => {
+    return (aiRecommendations || [])
+      .filter((item) => {
+        const p = getConfidencePercent(item);
+        return p >= 70 && p < 85;
+      })
+      .sort((a, b) => getConfidencePercent(b) - getConfidencePercent(a));
+  }, [aiRecommendations]);
+
+  const hasAiReplenishments = tier1AiList.length > 0 || tier2AiList.length > 0;
 
   const featuredProducts = filteredProducts;
   const dailyProducts = filteredProducts.slice(0, 4);
@@ -943,19 +1096,16 @@ export default function HomePage() {
         </section>
 
         {/* ======================================================
-            AI SMART REPLENISHMENT - DỰ ĐOÁN MUA LẠI BẰNG AI
+            AI SMART REPLENISHMENT - DỰ ĐOÁN MUA LẠI BẰNG AI (2 HÀNG TRƯỢT NGANG)
         ====================================================== */}
-        {aiRecommendations.length > 0 && (
-          <section className="section container" id="ai-replenishment" style={{ marginBottom: "35px" }}>
+        {hasAiReplenishments && (
+          <section className="section container ai-replenishment-section" id="ai-replenishment" style={{ marginBottom: "20px" }}>
             <div className="section-heading">
               <div>
                 <span className="section-kicker" style={{ color: "#10b981", fontWeight: "700" }}>
                   🤖 AI THÔNG MINH • CHU KỲ TIÊU DÙNG
                 </span>
                 <h2>Gợi ý mua lại hôm nay</h2>
-                <p style={{ color: "#64748b", fontSize: "14px", marginTop: "4px" }}>
-                  Dựa trên thói quen mua sắm 90 ngày của bạn, AI dự đoán những món đồ này sắp hết cần bổ sung ngay.
-                </p>
               </div>
               <button
                 className="text-link"
@@ -967,147 +1117,41 @@ export default function HomePage() {
               </button>
             </div>
 
-            <div
-              className="ai-recommendations-grid"
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(210px, 1fr))",
-                gap: "20px",
-              }}
-            >
-              {aiRecommendations.map((item) => (
-                <div
-                  key={item.productId}
-                  className="ai-card"
-                  style={{
-                    border: "1px solid #e2e8f0",
-                    borderRadius: "16px",
-                    padding: "16px",
-                    background: "#ffffff",
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.03)",
-                    display: "flex",
-                    flexDirection: "column",
-                    justifyContent: "space-between",
-                    position: "relative",
-                  }}
-                >
+            {/* HÀNG 1: ĐỘ TIN CẬY 85% - 100% (Sắp xếp từ lớn đến bé, trượt ngang) */}
+            {tier1AiList.length > 0 && (
+              <AiReplenishmentRow
+                title="Dựa trên chu kỳ tiêu dùng quen thuộc"
+                tierClass="tier-1"
+                badgeStyle={{
+                  kickerColor: "#059669",
+                  badgeBg: "#ecfdf5",
+                  badgeColor: "#065f46",
+                  badgeBorder: "#a7f3d0",
+                  meterGradient: "linear-gradient(90deg, #34d399, #059669)",
+                }}
+                items={tier1AiList}
+                onAddToCart={addToCart}
+                productsList={productsList}
+              />
+            )}
 
-                  {SHOW_AI_CONFIDENCE && item.confidence !== null && item.confidence !== undefined && (
-                    <span
-                      style={{
-                        position: "absolute",
-                        top: "12px",
-                        right: "12px",
-                        padding: "3px 8px",
-                        borderRadius: "12px",
-                        fontSize: "11px",
-                        fontWeight: "700",
-                        background:
-                          item.confidence >= 0.85
-                            ? "#ecfdf5"
-                            : item.confidence >= 0.7
-                            ? "#eff6ff"
-                            : "#fffbeb",
-                        color:
-                          item.confidence >= 0.85
-                            ? "#059669"
-                            : item.confidence >= 0.7
-                            ? "#2563eb"
-                            : "#d97706",
-                        border: `1px solid ${
-                          item.confidence >= 0.85
-                            ? "#a7f3d0"
-                            : item.confidence >= 0.7
-                            ? "#bfdbfe"
-                            : "#fde68a"
-                        }`,
-                      }}
-                      title={`Độ tin cậy mô hình AI: ${(item.confidence * 100).toFixed(1)}%`}
-                    >
-                      🎯 {Math.round(item.confidence * 100)}%
-                    </span>
-                  )}
-
-                  <div>
-                    <div style={{ fontSize: "40px", textAlign: "center", margin: "10px 0" }}>
-                      {getProductEmoji(item.productName)}
-                    </div>
-                    <h3 style={{ fontSize: "16px", margin: "0 0 6px", fontWeight: "700" }}>
-                      {item.productName}
-                    </h3>
-                    <p style={{ fontSize: "13px", color: "#64748b", margin: "0 0 10px" }}>
-                      {item.predictedDays !== null && item.predictedDays !== undefined ? (
-                        item.predictedDays <= 0 ? (
-                          <span style={{ color: "#ef4444", fontWeight: "700" }}>⚠️ Đã đến lúc mua lại!</span>
-                        ) : (
-                          <span>
-                            Dự kiến mua sau: <b>{Math.round(item.predictedDays)} ngày</b>
-                          </span>
-                        )
-                      ) : (
-                        <span>Dự kiến: {item.predictedNextDate || "Hôm nay"}</span>
-                      )}
-                    </p>
-
-                    {SHOW_AI_CONFIDENCE && item.confidence !== null && item.confidence !== undefined && (
-                      <div
-                        style={{
-                          fontSize: "12px",
-                          color: "#64748b",
-                          marginBottom: "14px",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "space-between",
-                          background: "#f8fafc",
-                          padding: "5px 10px",
-                          borderRadius: "8px",
-                          border: "1px dashed #cbd5e1",
-                        }}
-                      >
-                        <span>Độ tin cậy AI:</span>
-                        <span
-                          style={{
-                            fontWeight: "700",
-                            color:
-                              item.confidence >= 0.85
-                                ? "#059669"
-                                : item.confidence >= 0.7
-                                ? "#2563eb"
-                                : "#d97706",
-                          }}
-                        >
-                          {Math.round(item.confidence * 100)}%
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  <button
-                    className="add-button"
-                    style={{
-                      width: "100%",
-                      padding: "10px",
-                      borderRadius: "10px",
-                      background: "#10b981",
-                      color: "white",
-                      border: "none",
-                      fontWeight: "700",
-                      cursor: "pointer",
-                    }}
-                    onClick={() => {
-                      const prod =
-                        productsList.find((p) => p.id === item.productId) || {
-                          id: item.productId,
-                          name: item.productName,
-                        };
-                      addToCart(prod);
-                    }}
-                  >
-                    🛒 Mua lại ngay
-                  </button>
-                </div>
-              ))}
-            </div>
+            {/* HÀNG 2: ĐỘ TIN CẬY 70% - 85% (Sắp xếp từ lớn đến bé, trượt ngang) */}
+            {tier2AiList.length > 0 && (
+              <AiReplenishmentRow
+                title="Có thể bạn dùng sắp hết"
+                tierClass="tier-2"
+                badgeStyle={{
+                  kickerColor: "#2563eb",
+                  badgeBg: "#eff6ff",
+                  badgeColor: "#1e40af",
+                  badgeBorder: "#bfdbfe",
+                  meterGradient: "linear-gradient(90deg, #60a5fa, #2563eb)",
+                }}
+                items={tier2AiList}
+                onAddToCart={addToCart}
+                productsList={productsList}
+              />
+            )}
           </section>
         )}
 

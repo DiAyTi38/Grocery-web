@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
 import "../admin.css";
 
 export default function AdminCategoriesPage() {
-  const navigate = useNavigate();
   const { token } = useAuth();
 
   const [categories, setCategories] = useState([]);
@@ -186,15 +184,6 @@ export default function AdminCategoriesPage() {
     <main className="admin-page">
       <header className="admin-page__header">
         <div>
-          <button
-            className="admin-page__button admin-page__button--secondary"
-            type="button"
-            onClick={() => navigate("/admin")}
-            style={{ marginBottom: 20 }}
-          >
-            ← Quay lại Dashboard
-          </button>
-
           <p className="admin-page__eyebrow">SMART GROCERY / QUẢN TRỊ</p>
 
           <h1 className="admin-page__title">Quản lý danh mục</h1>

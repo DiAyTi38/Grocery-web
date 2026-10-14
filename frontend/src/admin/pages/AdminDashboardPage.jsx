@@ -4,7 +4,7 @@ import { useAuth } from "../../context/AuthContext";
 
 function AdminDashboardPage() {
   const navigate = useNavigate();
-  const { token, logout } = useAuth();
+  const { token } = useAuth();
 
   const [stats, setStats] = useState({
     usersCount: 0,
@@ -64,104 +64,8 @@ function AdminDashboardPage() {
     loadStats();
   }, [token]);
 
-  // ==================================================
-  // ĐĂNG XUẤT ADMIN
-  // ==================================================
-  function handleLogout() {
-    logout();
-    sessionStorage.removeItem("smart-grocery-admin");
-
-    navigate("/admin/login", {
-      replace: true,
-    });
-  }
-
   return (
-    <div style={styles.page}>
-      {/* ==================================================
-          SIDEBAR
-      ================================================== */}
-      <aside style={styles.sidebar}>
-        {/* LOGO */}
-        <div style={styles.logo}>🛒 Smart Grocery</div>
-
-        {/* NHÃN ADMIN */}
-        <div style={styles.adminLabel}>ADMIN</div>
-
-        {/* MENU */}
-        <nav style={styles.menu}>
-          {/* TỔNG QUAN */}
-          <button
-            type="button"
-            style={{
-              ...styles.menuItem,
-              ...styles.menuItemActive,
-            }}
-            onClick={() => navigate("/admin")}
-          >
-            📊 Tổng quan
-          </button>
-
-          {/* QUẢN LÝ ĐƠN HÀNG */}
-          <button
-            type="button"
-            style={styles.menuItem}
-            onClick={() => navigate("/admin/orders")}
-          >
-            📋 Quản lý đơn hàng
-          </button>
-
-          {/* QUẢN LÝ TÀI KHOẢN */}
-          <button
-            type="button"
-            style={styles.menuItem}
-            onClick={() => navigate("/admin/users")}
-          >
-            👥 Quản lý tài khoản
-          </button>
-
-          {/* QUẢN LÝ ĐIỂM */}
-          <button
-            type="button"
-            style={styles.menuItem}
-            onClick={() => navigate("/admin/points")}
-          >
-            ⭐ Quản lý tích điểm
-          </button>
-
-          {/* QUẢN LÝ SẢN PHẨM */}
-          <button
-            type="button"
-            style={styles.menuItem}
-            onClick={() => navigate("/admin/products")}
-          >
-            📦 Quản lý sản phẩm
-          </button>
-
-          {/* QUẢN LÝ DANH MỤC */}
-          <button
-            type="button"
-            style={styles.menuItem}
-            onClick={() => navigate("/admin/categories")}
-          >
-            🗂️ Quản lý danh mục
-          </button>
-        </nav>
-
-        {/* ĐĂNG XUẤT */}
-        <button
-          type="button"
-          style={styles.logoutButton}
-          onClick={handleLogout}
-        >
-          🚪 Đăng xuất
-        </button>
-      </aside>
-
-      {/* ==================================================
-          MAIN
-      ================================================== */}
-      <main style={styles.main}>
+    <main style={styles.main}>
         {/* HEADER */}
         <div style={styles.header}>
           <div>
@@ -321,7 +225,6 @@ function AdminDashboardPage() {
           </div>
         </div>
       </main>
-    </div>
   );
 }
 
@@ -330,82 +233,6 @@ function AdminDashboardPage() {
 // ==================================================
 
 const styles = {
-  // ==============================
-  // PAGE
-  // ==============================
-  page: {
-    minHeight: "100vh",
-    display: "flex",
-    background: "#f5f7f8",
-    fontFamily: "Arial, sans-serif",
-  },
-
-  // ==============================
-  // SIDEBAR
-  // ==============================
-  sidebar: {
-    width: "250px",
-    minHeight: "100vh",
-    background: "#253f50",
-    color: "#ffffff",
-    display: "flex",
-    flexDirection: "column",
-    padding: "24px 16px",
-    boxSizing: "border-box",
-  },
-
-  logo: {
-    fontSize: "20px",
-    fontWeight: "800",
-    padding: "10px 12px",
-    lineHeight: "1.4",
-  },
-
-  adminLabel: {
-    marginTop: "25px",
-    marginBottom: "10px",
-    padding: "0 12px",
-    fontSize: "11px",
-    fontWeight: "700",
-    color: "#aebbc4",
-    letterSpacing: "1px",
-  },
-
-  menu: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-
-  menuItem: {
-    border: "none",
-    background: "transparent",
-    color: "#ffffff",
-    textAlign: "left",
-    padding: "13px 12px",
-    borderRadius: "8px",
-    fontSize: "14px",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  },
-
-  menuItemActive: {
-    background: "rgba(255,255,255,0.12)",
-    fontWeight: "700",
-  },
-
-  logoutButton: {
-    marginTop: "auto",
-    border: "1px solid rgba(255,255,255,0.2)",
-    background: "transparent",
-    color: "#ffffff",
-    padding: "12px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-    transition: "all 0.2s ease",
-  },
-
   // ==============================
   // MAIN
   // ==============================
