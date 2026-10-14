@@ -96,9 +96,14 @@
      - **Kiểm soát tải (Throttling):** Giới hạn tối đa 8 requests đồng thời sang Python FastAPI để tránh nghẽn socket.
      - **Khả năng chịu lỗi (Fault-Tolerance):** Mỗi request có timeout 5s, nếu 1 sản phẩm gặp lỗi/timeout sẽ được bắt qua `onErrorResume` và bỏ qua, không làm gián đoạn các sản phẩm thành công còn lại.
   4. Lưu kết quả từ Python trả về vào DB (`ai_predictions`) với ràng buộc `UNIQUE (user_id, product_id)` chống trùng lặp dữ liệu (Flyway V10), và clear/cập nhật bản ghi tương ứng.
-- **Fallback (Chống lỗi đa tầng):** 
+- **Kiểm soát Trạng thái Sản phẩm (Active/Inactive Enforcement):**
+  - *Luồng Cache (`getRecommendations`):* Query `findAllByUserIdOrderByConfidenceDesc` ràng buộc `p.active = TRUE`, đảm bảo sản phẩm đã ngừng kinh doanh không bao giờ hiển thị trên UI gợi ý.
+  - *Luồng Làm mới (`refreshPredictions`):* Lọc bỏ hoàn toàn các sản phẩm `p.active = false` trước khi phân nhóm và gửi sang AI, tiết kiệm tài nguyên suy luận.
+- **Cơ chế Fallback Đa tầng (Cascading Fallback):** 
   - *Cấp sản phẩm:* Nếu Python AI không trả về kết quả cho 1 mặt hàng cụ thể, hệ thống fallback sang thuật toán nội tại Java (`calculateNextReplenishmentDate`).
-  - *Cấp hệ thống:* Nếu toàn bộ Python Server không phản hồi, Java tự động chuyển sang Embedded Intelligent Engine hoặc query TOP 5 sản phẩm bán chạy nhất từ `purchase_history` để trả về (Dạng Recommendation).
+  - *Cấp hệ thống (Top Selling Recommendation):*
+    - **Tầng 1 (Lịch sử bán chạy):** Truy vấn `purchase_history` với điều kiện `INNER JOIN products p ON ph.product_id = p.id WHERE p.active = 1` để lấy đúng Top 5 sản phẩm bán chạy nhất *đang hoạt động*, tránh tình trạng thiếu hụt sản phẩm do lọc ở tầng Java.
+    - **Tầng 2 (Cold Start Tuyệt đối):** Nếu hệ thống mới tinh hoặc lịch sử mua hàng chỉ có $< 5$ sản phẩm active, hệ thống tự động bù đắp bằng các sản phẩm active mới nhất từ `productRepository.findTop5ByActiveTrueOrderByIdDesc()` để luôn đảm bảo hiển thị đủ 5 sản phẩm.
 
 ## Luồng 7: Khách hàng thân thiết (Loyalty Module) (Đang triển khai)
 - **Mục tiêu:** Tích điểm mua hàng và thăng hạng thành viên.

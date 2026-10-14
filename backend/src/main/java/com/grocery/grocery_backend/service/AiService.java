@@ -26,10 +26,12 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -84,9 +86,15 @@ public class AiService {
             return getFallbackTopSelling();
         }
 
-        // Group purchases by productId
+        // Group purchases by productId (only for currently active products)
         Map<Long, List<PurchaseHistory>> byProduct = allHistory.stream()
+                .filter(ph -> ph.getProduct() != null && ph.getProduct().isActive())
                 .collect(Collectors.groupingBy(ph -> ph.getProduct().getId()));
+
+        if (byProduct.isEmpty()) {
+            log.info("User {} has no active product purchase history, returning fallback", user.getUsername());
+            return getFallbackTopSelling();
+        }
 
         // 1. Try calling Python AI service if reachable
         if (aiServiceClient.isHealthy()) {
@@ -358,31 +366,52 @@ public class AiService {
     }
 
     /**
-     * Fallback: Return top 5 best-selling products when AI is unavailable.
-     * (Solution A - Problem 2: Cold Start)
+     * Fallback: Return top 5 best-selling ACTIVE products when AI is unavailable.
+     * (Solution A - Problem 2: Cold Start & Inactive Product Protection)
+     * Tier 1: Query top sold products that are active.
+     * Tier 2 (Cold Start): Supplement with latest active products if purchase history yields < 5 products.
      */
     @Transactional(readOnly = true)
     public List<AiPredictionDto> getFallbackTopSelling() {
         List<Object[]> topProducts = purchaseHistoryRepository.findTopSellingProducts(5);
+        List<AiPredictionDto> results = new ArrayList<>();
+        Set<Long> productIds = new HashSet<>();
 
-        return topProducts.stream()
-                .map(row -> {
-                    Long productId = (Long) row[0];
-                    Product product = productRepository.findById(productId).orElse(null);
-                    if (product == null) return null;
+        // Tier 1: Best-selling active products from purchase history
+        for (Object[] row : topProducts) {
+            Long productId = (Long) row[0];
+            Product product = productRepository.findById(productId).orElse(null);
+            if (product != null && product.isActive()) {
+                results.add(buildFallbackDto(product));
+                productIds.add(product.getId());
+            }
+        }
 
-                    AiPredictionDto dto = new AiPredictionDto();
-                    dto.setProductId(product.getId());
-                    dto.setProductName(product.getName());
-                    dto.setProductImageUrl(product.getImageUrl());
-                    dto.setPredictedNextDate(LocalDate.now().plusDays(7));
-                    dto.setPredictedDays(7.0);
-                    dto.setConfidence(0.5); // Medium confidence for fallback
-                    dto.setType("RECOMMENDATION");
-                    return dto;
-                })
-                .filter(dto -> dto != null)
-                .toList();
+        // Tier 2: Cold start fallback - if fewer than 5 products, supplement with latest active products
+        if (results.size() < 5) {
+            List<Product> latestActive = productRepository.findTop5ByActiveTrueOrderByIdDesc();
+            for (Product product : latestActive) {
+                if (results.size() >= 5) break;
+                if (!productIds.contains(product.getId())) {
+                    results.add(buildFallbackDto(product));
+                    productIds.add(product.getId());
+                }
+            }
+        }
+
+        return results;
+    }
+
+    private AiPredictionDto buildFallbackDto(Product product) {
+        AiPredictionDto dto = new AiPredictionDto();
+        dto.setProductId(product.getId());
+        dto.setProductName(product.getName());
+        dto.setProductImageUrl(product.getImageUrl());
+        dto.setPredictedNextDate(LocalDate.now().plusDays(7));
+        dto.setPredictedDays(7.0);
+        dto.setConfidence(0.5); // Medium confidence for fallback
+        dto.setType("RECOMMENDATION");
+        return dto;
     }
 
     /**

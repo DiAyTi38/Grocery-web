@@ -15,7 +15,7 @@ public interface AiPredictionRepository extends JpaRepository<AiPrediction, Long
     @Query("""
             SELECT ap FROM AiPrediction ap
             JOIN FETCH ap.product p
-            WHERE ap.user.id = :userId
+            WHERE ap.user.id = :userId AND p.active = TRUE
             ORDER BY ap.confidence DESC
             """)
     List<AiPrediction> findAllByUserIdOrderByConfidenceDesc(Long userId);

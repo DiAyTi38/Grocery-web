@@ -33,11 +33,13 @@ public interface PurchaseHistoryRepository extends JpaRepository<PurchaseHistory
     List<PurchaseHistory> findAllByUserIdAndProductIdOrderByPurchaseDateAsc(Long userId, Long productId);
 
     /**
-     * Fallback query: Get top N best-selling products by total quantity sold.
+     * Fallback query: Get top N best-selling ACTIVE products by total quantity sold.
      */
     @Query(value = """
             SELECT ph.product_id, SUM(ph.quantity) AS total_qty
             FROM purchase_history ph
+            INNER JOIN products p ON ph.product_id = p.id
+            WHERE p.active = 1
             GROUP BY ph.product_id
             ORDER BY total_qty DESC
             LIMIT :limit

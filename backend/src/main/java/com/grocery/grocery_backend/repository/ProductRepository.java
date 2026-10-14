@@ -39,4 +39,6 @@ public interface ProductRepository extends JpaRepository<Product, Long> {
             @Param("categoryId") Long categoryId,
             @Param("q") String q,
             @Param("activeOnly") boolean activeOnly);
+
+    List<Product> findTop5ByActiveTrueOrderByIdDesc();
 }
