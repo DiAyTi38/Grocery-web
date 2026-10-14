@@ -82,17 +82,23 @@
   4. Tạo bản ghi bảng `orders` (trạng thái PENDING) và các `order_items`.
   5. Xóa sạch giỏ hàng.
 
-## Luồng 6: Tích hợp AI Gợi ý mua hàng (AI Service) (Đã hoàn thành)
+## Luồng 6: Tích hợp AI Gợi ý mua hàng (AI Service) (Đã hoàn thành & Tối ưu hóa)
 - **Mục tiêu:** Gợi ý các sản phẩm đến chu kỳ cần mua tiếp theo (bổ sung kho) hoặc top sản phẩm bán chạy.
 - **Kiến trúc:** Microservices kết hợp.
-  - Java Backend (Port 8080): Chứa Core API, DB MySQL.
-  - Python FastAPI (Port 8000): Chạy Machine Learning Model.
+  - Java Backend (Port 8080): Chứa Core API, DB MySQL, WebClient Reactive Client.
+  - Python FastAPI (Port 8000): Chạy Machine Learning Model (Random Forest suy luận chu kỳ và độ tin cậy động).
 - **Quy trình:**
   1. User gọi `POST /api/ai/refresh` (Từ Frontend).
-  2. Java truy vấn toàn bộ lịch sử mua hàng (bảng `purchase_history`), gom nhóm theo sản phẩm. Lọc ra các sản phẩm mua từ 2 lần trở lên.
-  3. Dùng `WebClient` (CompletableFuture) gọi **song song** sang Python API (`/api/ai/predict`) cho từng sản phẩm để tránh nghẽn.
-  4. Lưu kết quả từ Python trả về vào DB (`ai_predictions`) và clear lịch sử cũ.
-- **Fallback (Chống lỗi):** Nếu Python Server sập, hoặc User không đủ data, Java sẽ tự động query TOP 5 sản phẩm bán chạy nhất từ `purchase_history` để trả về (Dạng Recommendation).
+  2. Java truy vấn toàn bộ lịch sử mua hàng (bảng `purchase_history`), gom nhóm theo sản phẩm. Lọc ra các sản phẩm mua từ 2 lần trở lên, trích xuất đặc trưng `categoryType` và `reminderIntervalDays` động từ danh mục.
+  3. **Gọi song song Non-blocking Reactive (`AiServiceClient.predictParallel`):**
+     - Sử dụng `Flux.fromIterable(requests).flatMap(..., concurrency = 8)` chạy trực tiếp trên Netty EventLoop.
+     - **Triệt tiêu lỗi Thread Starvation:** Tuyệt đối không dùng `CompletableFuture.supplyAsync()` vì ngầm định chiếm dụng `ForkJoinPool.commonPool()` của toàn bộ JVM cho tác vụ Blocking Network I/O.
+     - **Kiểm soát tải (Throttling):** Giới hạn tối đa 8 requests đồng thời sang Python FastAPI để tránh nghẽn socket.
+     - **Khả năng chịu lỗi (Fault-Tolerance):** Mỗi request có timeout 5s, nếu 1 sản phẩm gặp lỗi/timeout sẽ được bắt qua `onErrorResume` và bỏ qua, không làm gián đoạn các sản phẩm thành công còn lại.
+  4. Lưu kết quả từ Python trả về vào DB (`ai_predictions`) với ràng buộc `UNIQUE (user_id, product_id)` chống trùng lặp dữ liệu (Flyway V10), và clear/cập nhật bản ghi tương ứng.
+- **Fallback (Chống lỗi đa tầng):** 
+  - *Cấp sản phẩm:* Nếu Python AI không trả về kết quả cho 1 mặt hàng cụ thể, hệ thống fallback sang thuật toán nội tại Java (`calculateNextReplenishmentDate`).
+  - *Cấp hệ thống:* Nếu toàn bộ Python Server không phản hồi, Java tự động chuyển sang Embedded Intelligent Engine hoặc query TOP 5 sản phẩm bán chạy nhất từ `purchase_history` để trả về (Dạng Recommendation).
 
 ## Luồng 7: Khách hàng thân thiết (Loyalty Module) (Đang triển khai)
 - **Mục tiêu:** Tích điểm mua hàng và thăng hạng thành viên.
