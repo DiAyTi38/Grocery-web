@@ -24,6 +24,7 @@ public class AiServiceClient {
 
     private final WebClient webClient;
 
+    @org.springframework.beans.factory.annotation.Autowired
     public AiServiceClient(
             @Value("${grocery.ai.service-url:http://localhost:8000}") String aiServiceUrl) {
         this(WebClient.builder().baseUrl(aiServiceUrl).build());

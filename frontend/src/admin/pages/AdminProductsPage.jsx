@@ -16,6 +16,15 @@ const EMPTY_FORM = {
 
 const money = (value) => `${(Number(value) || 0).toLocaleString("vi-VN")} ₫`;
 
+const getProductStock = (product) =>
+  Number(
+    product?.availableQuantity ??
+      product?.stockQuantity ??
+      product?.stock ??
+      product?.quantity ??
+      0,
+  );
+
 export default function AdminProductsPage() {
   const navigate = useNavigate();
   const { token } = useAuth();
@@ -124,14 +133,12 @@ export default function AdminProductsPage() {
   });
 
   const totalStock = products.reduce(
-    (total, product) =>
-      total + (Number(product.stock ?? product.quantity) || 0),
+    (total, product) => total + getProductStock(product),
     0,
   );
 
   const lowStockCount = products.filter((product) => {
-    const stock = Number(product.stock ?? product.quantity) || 0;
-    return stock <= 5;
+    return getProductStock(product) <= 5;
   }).length;
 
   function openCreate() {
@@ -156,13 +163,7 @@ export default function AdminProductsPage() {
       description: product.description || "",
       imageUrl: product.imageUrl || product.image || "",
       categoryId: String(product.category?.id ?? product.categoryId ?? ""),
-      stock: String(
-        product.availableQuantity ??
-          product.stockQuantity ??
-          product.stock ??
-          product.quantity ??
-          0,
-      ),
+      stock: String(getProductStock(product)),
     });
     setShowForm(true);
     setError("");
@@ -627,7 +628,7 @@ export default function AdminProductsPage() {
 
               <tbody>
                 {filteredProducts.map((product) => {
-                  const stock = Number(product.stock ?? product.quantity ?? 0);
+                  const stock = getProductStock(product);
                   const image = product.imageUrl || product.image;
                   const categoryName =
                     product.category?.name || product.categoryName || "—";
