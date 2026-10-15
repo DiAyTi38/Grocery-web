@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import "../admin.css";
+import { API_BASE_URL } from "../../services/api";
+import "../Admin.css";
+
 
 const EMPTY_FORM = {
   name: "",
+  sku: "",
+  unit: "Gói",
   price: "",
   description: "",
   imageUrl: "",
@@ -14,8 +17,16 @@ const EMPTY_FORM = {
 
 const money = (value) => `${(Number(value) || 0).toLocaleString("vi-VN")} ₫`;
 
+const getProductStock = (product) =>
+  Number(
+    product?.availableQuantity ??
+      product?.stockQuantity ??
+      product?.stock ??
+      product?.quantity ??
+      0,
+  );
+
 export default function AdminProductsPage() {
-  const navigate = useNavigate();
   const { token } = useAuth();
 
   const [products, setProducts] = useState([]);
@@ -37,7 +48,7 @@ export default function AdminProductsPage() {
         throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
       }
 
-      const response = await fetch(`http://localhost:8080/api${path}`, {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
         ...options,
         headers: {
           "Content-Type": "application/json",
@@ -122,19 +133,21 @@ export default function AdminProductsPage() {
   });
 
   const totalStock = products.reduce(
-    (total, product) =>
-      total + (Number(product.stock ?? product.quantity) || 0),
+    (total, product) => total + getProductStock(product),
     0,
   );
 
   const lowStockCount = products.filter((product) => {
-    const stock = Number(product.stock ?? product.quantity) || 0;
-    return stock <= 5;
+    return getProductStock(product) <= 5;
   }).length;
 
   function openCreate() {
     setEditingId(null);
-    setForm({ ...EMPTY_FORM });
+    setForm({
+      ...EMPTY_FORM,
+      sku: `SKU-${Date.now().toString().slice(-6)}`,
+      unit: "Gói",
+    });
     setShowForm(true);
     setError("");
     setSuccess("");
@@ -144,11 +157,13 @@ export default function AdminProductsPage() {
     setEditingId(product.id);
     setForm({
       name: product.name || "",
+      sku: product.sku || "",
+      unit: product.unit || "Gói",
       price: String(product.price ?? ""),
       description: product.description || "",
       imageUrl: product.imageUrl || product.image || "",
       categoryId: String(product.category?.id ?? product.categoryId ?? ""),
-      stock: String(product.stock ?? product.quantity ?? 0),
+      stock: String(getProductStock(product)),
     });
     setShowForm(true);
     setError("");
@@ -169,6 +184,16 @@ export default function AdminProductsPage() {
 
     if (!form.name.trim()) {
       setError("Vui lòng nhập tên sản phẩm.");
+      return;
+    }
+
+    if (!form.sku.trim()) {
+      setError("Vui lòng nhập mã SKU cho sản phẩm.");
+      return;
+    }
+
+    if (!form.unit.trim()) {
+      setError("Vui lòng nhập đơn vị tính (ví dụ: Lon, Chai, Gói, Hộp).");
       return;
     }
 
@@ -193,23 +218,43 @@ export default function AdminProductsPage() {
 
     const payload = {
       name: form.name.trim(),
+      sku: form.sku.trim(),
+      unit: form.unit.trim(),
       price: Number(form.price),
       description: form.description.trim(),
       imageUrl: form.imageUrl.trim(),
       categoryId: Number(form.categoryId),
-      stock: Number(form.stock),
+      initialQuantity: Number(form.stock),
+      lowStockThreshold: 5,
+      active: true,
     };
 
     setSaving(true);
 
     try {
-      await request(
-        editingId != null ? `/products/${editingId}` : "/products",
-        {
-          method: editingId != null ? "PUT" : "POST",
+      if (editingId != null) {
+        await request(`/products/${editingId}`, {
+          method: "PUT",
           body: JSON.stringify(payload),
-        },
-      );
+        });
+
+        try {
+          await request(`/inventory/${editingId}`, {
+            method: "PUT",
+            body: JSON.stringify({
+              quantity: Number(form.stock),
+              lowStockThreshold: 5,
+            }),
+          });
+        } catch (invErr) {
+          console.warn("Không cập nhật được kho:", invErr);
+        }
+      } else {
+        await request("/products", {
+          method: "POST",
+          body: JSON.stringify(payload),
+        });
+      }
 
       setShowForm(false);
       setEditingId(null);
@@ -257,15 +302,6 @@ export default function AdminProductsPage() {
     <main className="admin-page">
       <header className="admin-page__header">
         <div>
-          <button
-            className="admin-page__button admin-page__button--secondary"
-            onClick={() => navigate("/admin")}
-            type="button"
-            style={{ marginBottom: 20 }}
-          >
-            ← Quay lại Dashboard
-          </button>
-
           <p className="admin-page__eyebrow">SMART GROCERY / QUẢN TRỊ</p>
           <h1 className="admin-page__title">Quản lý sản phẩm</h1>
           <p className="admin-page__subtitle">
@@ -363,6 +399,30 @@ export default function AdminProductsPage() {
                     value={form.name}
                     onChange={(e) => setForm({ ...form, name: e.target.value })}
                     placeholder="Ví dụ: Sữa tươi không đường"
+                  />
+                </div>
+
+                <div className="admin-page__field">
+                  <label htmlFor="product-sku">Mã SKU *</label>
+                  <input
+                    id="product-sku"
+                    className="admin-page__input"
+                    required
+                    value={form.sku}
+                    onChange={(e) => setForm({ ...form, sku: e.target.value })}
+                    placeholder="Ví dụ: SKU-101"
+                  />
+                </div>
+
+                <div className="admin-page__field">
+                  <label htmlFor="product-unit">Đơn vị tính *</label>
+                  <input
+                    id="product-unit"
+                    className="admin-page__input"
+                    required
+                    value={form.unit}
+                    onChange={(e) => setForm({ ...form, unit: e.target.value })}
+                    placeholder="Ví dụ: Lon, Chai, Gói, Hộp"
                   />
                 </div>
 
@@ -559,7 +619,7 @@ export default function AdminProductsPage() {
 
               <tbody>
                 {filteredProducts.map((product) => {
-                  const stock = Number(product.stock ?? product.quantity ?? 0);
+                  const stock = getProductStock(product);
                   const image = product.imageUrl || product.image;
                   const categoryName =
                     product.category?.name || product.categoryName || "—";
@@ -587,7 +647,7 @@ export default function AdminProductsPage() {
                               {product.name || "Chưa đặt tên"}
                             </div>
                             <div className="admin-page__muted">
-                              Mã SP: {product.id}
+                              Mã: #{product.id} • SKU: {product.sku || "—"} • ĐVT: {product.unit || "—"}
                             </div>
                           </div>
                         </div>

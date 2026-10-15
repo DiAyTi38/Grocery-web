@@ -38,6 +38,15 @@ public class User {
     @Column(length = 255)
     private String address;
 
+    @Column(name = "avatar_url", columnDefinition = "MEDIUMTEXT")
+    private String avatarUrl;
+
+    @Column(length = 20)
+    private String gender;
+
+    @Column(name = "birth_date", length = 20)
+    private String birthDate;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private Role role;

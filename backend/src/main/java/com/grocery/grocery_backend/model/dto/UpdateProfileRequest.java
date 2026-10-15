@@ -18,4 +18,12 @@ public class UpdateProfileRequest {
 
     @Size(max = 255, message = "Address must not exceed 255 characters")
     private String address;
+
+    private String avatarUrl;
+
+    @Size(max = 20, message = "Gender must not exceed 20 characters")
+    private String gender;
+
+    @Size(max = 20, message = "Birth date must not exceed 20 characters")
+    private String birthDate;
 }

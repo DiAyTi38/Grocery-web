@@ -17,6 +17,9 @@ public class UserProfileDto {
     private final String fullName;
     private final String phone;
     private final String address;
+    private final String avatarUrl;
+    private final String gender;
+    private final String birthDate;
     private final Role role;
     private final boolean enabled;
     private final LocalDateTime createdAt;
@@ -30,6 +33,9 @@ public class UserProfileDto {
                 .fullName(user.getFullName())
                 .phone(user.getPhone())
                 .address(user.getAddress())
+                .avatarUrl(user.getAvatarUrl())
+                .gender(user.getGender())
+                .birthDate(user.getBirthDate())
                 .role(user.getRole())
                 .enabled(user.isEnabled())
                 .createdAt(user.getCreatedAt())

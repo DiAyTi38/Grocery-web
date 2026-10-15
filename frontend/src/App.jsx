@@ -22,6 +22,8 @@ import AdminUsersPage from "./admin/pages/AdminUsersPage";
 import AdminPointsPage from "./admin/pages/AdminPointsPage";
 import AdminProductsPage from "./admin/pages/AdminProductsPage";
 import AdminCategoriesPage from "./admin/pages/AdminCategoriesPage";
+import AdminOrdersPage from "./admin/pages/AdminOrdersPage";
+import AdminLayout from "./admin/AdminLayout";
 
 // ==================================================
 // ADMIN CSS
@@ -61,7 +63,13 @@ function GuestRoute({ children }) {
 // BẢO VỆ CÁC TRANG ADMIN
 // ==================================================
 function AdminProtectedRoute({ children }) {
-  const isAdmin = sessionStorage.getItem("smart-grocery-admin") === "true";
+  const { user, token } = useAuth();
+  const isAdmin =
+    (sessionStorage.getItem("smart-grocery-admin") === "true" ||
+      user?.isAdmin ||
+      user?.role === "ROLE_ADMIN" ||
+      user?.roles?.includes("ROLE_ADMIN")) &&
+    Boolean(token);
 
   if (!isAdmin) {
     return <Navigate to="/admin/login" replace />;
@@ -146,76 +154,39 @@ function AppRouter() {
             ================================================== */}
 
         {/* ==================================================
-            GIAI ĐOẠN 1
             ADMIN - ĐĂNG NHẬP
             Không cần Customer đăng nhập
         ================================================== */}
         <Route path="/admin/login" element={<AdminLoginPage />} />
 
         {/* ==================================================
-            GIAI ĐOẠN 2
-            ADMIN - DASHBOARD
+            ADMIN - KHU VỰC QUẢN TRỊ (MENU CỐ ĐỊNH GIỮ NGUYÊN)
         ================================================== */}
         <Route
-          path="/admin"
           element={
             <AdminProtectedRoute>
-              <AdminDashboardPage />
+              <AdminLayout />
             </AdminProtectedRoute>
           }
-        />
+        >
+          {/* TỔNG QUAN */}
+          <Route path="/admin" element={<AdminDashboardPage />} />
 
-        {/* ==================================================
-            GIAI ĐOẠN 3
-            QUẢN LÝ TÀI KHOẢN
-        ================================================== */}
-        <Route
-          path="/admin/users"
-          element={
-            <AdminProtectedRoute>
-              <AdminUsersPage />
-            </AdminProtectedRoute>
-          }
-        />
+          {/* QUẢN LÝ ĐƠN HÀNG */}
+          <Route path="/admin/orders" element={<AdminOrdersPage />} />
 
-        {/* ==================================================
-            GIAI ĐOẠN 4
-            QUẢN LÝ ĐIỂM
-        ================================================== */}
-        <Route
-          path="/admin/points"
-          element={
-            <AdminProtectedRoute>
-              <AdminPointsPage />
-            </AdminProtectedRoute>
-          }
-        />
+          {/* QUẢN LÝ TÀI KHOẢN */}
+          <Route path="/admin/users" element={<AdminUsersPage />} />
 
-        {/* ==================================================
-            GIAI ĐOẠN 5
-            QUẢN LÝ SẢN PHẨM
-        ================================================== */}
-        <Route
-          path="/admin/products"
-          element={
-            <AdminProtectedRoute>
-              <AdminProductsPage />
-            </AdminProtectedRoute>
-          }
-        />
+          {/* QUẢN LÝ ĐIỂM */}
+          <Route path="/admin/points" element={<AdminPointsPage />} />
 
-        {/* ==================================================
-            GIAI ĐOẠN 6
-            QUẢN LÝ DANH MỤC
-        ================================================== */}
-        <Route
-          path="/admin/categories"
-          element={
-            <AdminProtectedRoute>
-              <AdminCategoriesPage />
-            </AdminProtectedRoute>
-          }
-        />
+          {/* QUẢN LÝ SẢN PHẨM */}
+          <Route path="/admin/products" element={<AdminProductsPage />} />
+
+          {/* QUẢN LÝ DANH MỤC */}
+          <Route path="/admin/categories" element={<AdminCategoriesPage />} />
+        </Route>
 
         {/* ==================================================
             404

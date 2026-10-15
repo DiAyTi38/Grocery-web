@@ -1,96 +1,73 @@
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../services/api";
+
 
 function AdminDashboardPage() {
   const navigate = useNavigate();
+  const { token } = useAuth();
 
-  // ==================================================
-  // ĐĂNG XUẤT ADMIN
-  // ==================================================
-  function handleLogout() {
-    sessionStorage.removeItem("smart-grocery-admin");
+  const [stats, setStats] = useState({
+    usersCount: 0,
+    productsCount: 0,
+    categoriesCount: 0,
+    ordersCount: 0,
+    pendingOrdersCount: 0,
+    totalStock: 0,
+  });
 
-    navigate("/admin/login", {
-      replace: true,
-    });
-  }
+  useEffect(() => {
+    if (!token) return;
+
+    async function loadStats() {
+      try {
+        const headers = {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        };
+
+        const [usersRes, productsRes, categoriesRes, ordersRes] = await Promise.all([
+          fetch(`${API_BASE_URL}/users`, { headers }),
+          fetch(`${API_BASE_URL}/products`, { headers }),
+          fetch(`${API_BASE_URL}/categories`, { headers }),
+          fetch(`${API_BASE_URL}/orders/admin`, { headers }),
+        ]);
+
+        const usersData = usersRes.ok ? await usersRes.json() : [];
+        const productsData = productsRes.ok ? await productsRes.json() : [];
+        const categoriesData = categoriesRes.ok ? await categoriesRes.json() : [];
+        const ordersData = ordersRes.ok ? await ordersRes.json() : [];
+
+        const usersList = Array.isArray(usersData) ? usersData : usersData?.content || [];
+        const productsList = Array.isArray(productsData) ? productsData : productsData?.content || [];
+        const categoriesList = Array.isArray(categoriesData) ? categoriesData : categoriesData?.content || [];
+        const ordersList = Array.isArray(ordersData) ? ordersData : [];
+
+        const totalStock = productsList.reduce((acc, p) => {
+          return acc + (Number(p.availableQuantity ?? p.stockQuantity ?? p.stock ?? 0) || 0);
+        }, 0);
+
+        const pendingOrders = ordersList.filter((o) => o.status === "PENDING").length;
+
+        setStats({
+          usersCount: usersList.length,
+          productsCount: productsList.length,
+          categoriesCount: categoriesList.length,
+          ordersCount: ordersList.length,
+          pendingOrdersCount: pendingOrders,
+          totalStock,
+        });
+      } catch (err) {
+        console.warn("Lỗi tải thống kê Dashboard:", err);
+      }
+    }
+
+    loadStats();
+  }, [token]);
 
   return (
-    <div style={styles.page}>
-      {/* ==================================================
-          SIDEBAR
-      ================================================== */}
-      <aside style={styles.sidebar}>
-        {/* LOGO */}
-        <div style={styles.logo}>🛒 Smart Grocery</div>
-
-        {/* NHÃN ADMIN */}
-        <div style={styles.adminLabel}>ADMIN</div>
-
-        {/* MENU */}
-        <nav style={styles.menu}>
-          {/* TỔNG QUAN */}
-          <button
-            type="button"
-            style={{
-              ...styles.menuItem,
-              ...styles.menuItemActive,
-            }}
-            onClick={() => navigate("/admin")}
-          >
-            📊 Tổng quan
-          </button>
-
-          {/* QUẢN LÝ TÀI KHOẢN */}
-          <button
-            type="button"
-            style={styles.menuItem}
-            onClick={() => navigate("/admin/users")}
-          >
-            👥 Quản lý tài khoản
-          </button>
-
-          {/* QUẢN LÝ ĐIỂM */}
-          <button
-            type="button"
-            style={styles.menuItem}
-            onClick={() => navigate("/admin/points")}
-          >
-            ⭐ Quản lý tích điểm
-          </button>
-
-          {/* QUẢN LÝ SẢN PHẨM */}
-          <button
-            type="button"
-            style={styles.menuItem}
-            onClick={() => navigate("/admin/products")}
-          >
-            📦 Quản lý sản phẩm
-          </button>
-
-          {/* QUẢN LÝ DANH MỤC */}
-          <button
-            type="button"
-            style={styles.menuItem}
-            onClick={() => navigate("/admin/categories")}
-          >
-            🗂️ Quản lý danh mục
-          </button>
-        </nav>
-
-        {/* ĐĂNG XUẤT */}
-        <button
-          type="button"
-          style={styles.logoutButton}
-          onClick={handleLogout}
-        >
-          🚪 Đăng xuất
-        </button>
-      </aside>
-
-      {/* ==================================================
-          MAIN
-      ================================================== */}
-      <main style={styles.main}>
+    <main style={styles.main}>
         {/* HEADER */}
         <div style={styles.header}>
           <div>
@@ -120,7 +97,25 @@ function AdminDashboardPage() {
             <div>
               <p style={styles.cardLabel}>Tài khoản</p>
 
-              <h2 style={styles.cardNumber}>0</h2>
+              <h2 style={styles.cardNumber}>{stats.usersCount}</h2>
+            </div>
+          </div>
+
+          {/* ĐƠN HÀNG */}
+          <div
+            style={styles.card}
+            onClick={() => navigate("/admin/orders")}
+            role="button"
+            tabIndex={0}
+          >
+            <div style={styles.cardIcon}>📋</div>
+
+            <div>
+              <p style={styles.cardLabel}>
+                Đơn hàng {stats.pendingOrdersCount > 0 ? `(${stats.pendingOrdersCount} chờ)` : ""}
+              </p>
+
+              <h2 style={styles.cardNumber}>{stats.ordersCount}</h2>
             </div>
           </div>
 
@@ -136,7 +131,7 @@ function AdminDashboardPage() {
             <div>
               <p style={styles.cardLabel}>Sản phẩm</p>
 
-              <h2 style={styles.cardNumber}>0</h2>
+              <h2 style={styles.cardNumber}>{stats.productsCount}</h2>
             </div>
           </div>
 
@@ -152,23 +147,23 @@ function AdminDashboardPage() {
             <div>
               <p style={styles.cardLabel}>Danh mục</p>
 
-              <h2 style={styles.cardNumber}>0</h2>
+              <h2 style={styles.cardNumber}>{stats.categoriesCount}</h2>
             </div>
           </div>
 
-          {/* ĐIỂM */}
+          {/* TỒN KHO HỆ THỐNG */}
           <div
             style={styles.card}
-            onClick={() => navigate("/admin/points")}
+            onClick={() => navigate("/admin/products")}
             role="button"
             tabIndex={0}
           >
-            <div style={styles.cardIcon}>⭐</div>
+            <div style={styles.cardIcon}>📊</div>
 
             <div>
-              <p style={styles.cardLabel}>Điểm đã cấp</p>
+              <p style={styles.cardLabel}>Tổng tồn kho</p>
 
-              <h2 style={styles.cardNumber}>0</h2>
+              <h2 style={styles.cardNumber}>{stats.totalStock}</h2>
             </div>
           </div>
         </div>
@@ -186,6 +181,15 @@ function AdminDashboardPage() {
 
           {/* CÁC CHỨC NĂNG */}
           <div style={styles.quickActions}>
+            <button
+              type="button"
+              style={styles.quickButton}
+              onClick={() => navigate("/admin/orders")}
+            >
+              📋
+              <span>Quản lý đơn hàng</span>
+            </button>
+
             <button
               type="button"
               style={styles.quickButton}
@@ -223,7 +227,6 @@ function AdminDashboardPage() {
           </div>
         </div>
       </main>
-    </div>
   );
 }
 
@@ -232,82 +235,6 @@ function AdminDashboardPage() {
 // ==================================================
 
 const styles = {
-  // ==============================
-  // PAGE
-  // ==============================
-  page: {
-    minHeight: "100vh",
-    display: "flex",
-    background: "#f5f7f8",
-    fontFamily: "Arial, sans-serif",
-  },
-
-  // ==============================
-  // SIDEBAR
-  // ==============================
-  sidebar: {
-    width: "250px",
-    minHeight: "100vh",
-    background: "#253f50",
-    color: "#ffffff",
-    display: "flex",
-    flexDirection: "column",
-    padding: "24px 16px",
-    boxSizing: "border-box",
-  },
-
-  logo: {
-    fontSize: "20px",
-    fontWeight: "800",
-    padding: "10px 12px",
-    lineHeight: "1.4",
-  },
-
-  adminLabel: {
-    marginTop: "25px",
-    marginBottom: "10px",
-    padding: "0 12px",
-    fontSize: "11px",
-    fontWeight: "700",
-    color: "#aebbc4",
-    letterSpacing: "1px",
-  },
-
-  menu: {
-    display: "flex",
-    flexDirection: "column",
-    gap: "5px",
-  },
-
-  menuItem: {
-    border: "none",
-    background: "transparent",
-    color: "#ffffff",
-    textAlign: "left",
-    padding: "13px 12px",
-    borderRadius: "8px",
-    fontSize: "14px",
-    cursor: "pointer",
-    transition: "all 0.2s ease",
-  },
-
-  menuItemActive: {
-    background: "rgba(255,255,255,0.12)",
-    fontWeight: "700",
-  },
-
-  logoutButton: {
-    marginTop: "auto",
-    border: "1px solid rgba(255,255,255,0.2)",
-    background: "transparent",
-    color: "#ffffff",
-    padding: "12px",
-    borderRadius: "8px",
-    cursor: "pointer",
-    fontSize: "14px",
-    transition: "all 0.2s ease",
-  },
-
   // ==============================
   // MAIN
   // ==============================

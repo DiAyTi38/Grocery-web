@@ -1,5 +1,6 @@
 package com.grocery.grocery_backend.model.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.grocery.grocery_backend.model.entity.Inventory;
 import com.grocery.grocery_backend.model.entity.Product;
 import lombok.Builder;
@@ -29,6 +30,16 @@ public class ProductDto {
     private final boolean lowStock;
     private final LocalDateTime createdAt;
     private final LocalDateTime updatedAt;
+
+    @JsonProperty("stock")
+    public int getStock() {
+        return availableQuantity;
+    }
+
+    @JsonProperty("quantity")
+    public int getQuantity() {
+        return stockQuantity;
+    }
 
     public static ProductDto from(Product product) {
         Inventory inventory = product.getInventory();
