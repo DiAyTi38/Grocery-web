@@ -129,6 +129,23 @@ Tại thư mục gốc, hệ thống đã trang bị sẵn bộ công cụ tự 
 
 ---
 
+## 🌐 Phát sóng Demo ra Internet (Cloudflare Tunnel)
+
+Hệ thống cho phép phát sóng toàn bộ ứng dụng từ máy tính cá nhân ra ngoài Internet (có sẵn chứng chỉ HTTPS bảo mật và mã QR để thầy cô / hội đồng dùng điện thoại quét trực tiếp):
+
+- **Bật phát sóng (Start Tunnel):**
+  ```bash
+  ./scripts/start-tunnel.sh
+  ```
+  Script sẽ tự động khởi động đường hầm bảo mật và in ra đường link HTTPS công khai (Ví dụ: `https://xxxx.trycloudflare.com`) kèm link tạo mã QR.
+
+- **Dừng phát sóng (Stop Tunnel):**
+  ```bash
+  ./scripts/stop-tunnel.sh
+  ```
+
+---
+
 ## 🐛 Khắc phục sự cố thường gặp (Troubleshooting)
 
 - **Lỗi "Cannot connect to database":** 

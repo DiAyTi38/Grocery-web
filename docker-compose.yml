@@ -74,6 +74,18 @@ services:
     networks:
       - grocery-network
 
+  tunnel:
+    image: cloudflare/cloudflared:latest
+    container_name: grocery_tunnel
+    restart: unless-stopped
+    command: tunnel --no-autoupdate --url http://frontend:80
+    depends_on:
+      - frontend
+    networks:
+      - grocery-network
+    profiles:
+      - tunnel
+
 volumes:
   mysql_data:
 
