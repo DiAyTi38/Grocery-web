@@ -14,35 +14,60 @@ Dự án Hệ thống thương mại điện tử Smart Grocery tích hợp AI (
 
 ## 🚀 Hướng dẫn khởi chạy hệ thống (Dành cho Team)
 
-Môi trường Backend đã được tự động hóa. Không ai được phép tự tạo Database bằng tay. Hãy làm theo đúng thứ tự 2 bước dưới đây:
+Toàn bộ hệ thống (Frontend, Backend, AI Service, Database) đã được tự động hóa tại thư mục gốc bằng **Docker Compose**. Bạn không cần cài MySQL cục bộ.
 
-### Bước 1: Khởi động Database bằng Docker
-1. Mở phần mềm **Docker Desktop** trên máy tính của bạn và đợi nó khởi động xong.
-2. Mở Terminal (hoặc Command Prompt/Git Bash) tại thư mục `backend`.
-3. Sao chép file cấu hình local và thay đổi mật khẩu trước lần chạy đầu tiên:
-   ```bash
-   cp .env.example .env
-   ```
-4. Gõ lệnh sau để tạo và chạy MySQL cùng Backend:
-   ```bash
-   docker compose up --build -d
-   ```
-   *Giải thích: Lệnh này tạo MySQL 8.0, database `smart_grocery`, tài khoản ứng dụng từ `.env`, rồi chỉ khởi động Backend sau khi MySQL healthy. Dữ liệu được lưu trong Docker volume.*
+### Bước 1: Cấu hình môi trường
+Mở Terminal tại thư mục gốc `groceryweb` và sao chép file cấu hình mẫu:
+```bash
+cp .env.example .env
+```
 
-Kiểm tra trạng thái service:
+---
 
+### Bước 2: Khởi chạy hệ thống
+
+Tùy vào mục đích làm việc, bạn chọn **1 trong 2 cách** sau:
+
+#### Cách 1: Khởi chạy TOÀN BỘ hệ thống (Dành cho Demo / Test E2E)
+Chỉ cần 1 lệnh duy nhất tại thư mục gốc để build và chạy 4 container:
+```bash
+docker compose up --build -d
+```
+* **Frontend:** `http://localhost:3000` (Giao diện React E-commerce)
+* **Backend API:** `http://localhost:8080/api/products` (Spring Boot)
+* **AI Service:** `http://localhost:8000/health` (FastAPI Prediction Engine)
+* **MySQL Database:** `localhost:3306`
+
+Kiểm tra trạng thái các container:
 ```bash
 docker compose ps
 docker compose logs -f backend
 ```
 
-### Bước 2: Chạy Backend (Spring Boot)
-- **Cách 1 (Bằng Terminal - Nhanh nhất):**
-  Mở Terminal tại thư mục `backend` và gõ:
+---
+
+#### Cách 2: Khởi chạy linh hoạt theo vai trò phát triển (Dành cho Developer)
+
+- **Dành cho Backend Dev (chỉ muốn bật DB để debug trên IDE):**
   ```bash
-  ./mvnw spring-boot:run
+  # Chỉ bật MySQL (không bật FE/BE/AI trong Docker):
+  docker compose up -d mysql-db
+
+  # Sau đó chạy Spring Boot bằng IntelliJ hoặc Terminal:
+  cd backend && ./mvnw spring-boot:run
   ```
-  *(Trên Windows: `mvnw.cmd spring-boot:run`)*
+
+- **Dành cho Frontend Dev (bật sẵn Backend + DB + AI để test giao diện):**
+  ```bash
+  docker compose up -d mysql-db backend ai-service
+  cd frontend && npm run dev
+  ```
+
+- **Dành cho AI Dev (bật DB + Backend để test tích hợp model):**
+  ```bash
+  docker compose up -d mysql-db backend
+  cd ai-service && uvicorn src.main:app --port 8000 --reload
+  ```
 
 - **Cách 2 (Bằng IDE):**
   1. Mở thư mục `backend` bằng IntelliJ IDEA hoặc VS Code.
@@ -77,8 +102,8 @@ Toàn bộ team phải tuân thủ quy tắc chia nhánh (branch) sau để trá
 ## 🐛 Khắc phục sự cố thường gặp (Troubleshooting)
 
 - **Lỗi "Cannot connect to database":** 
-  👉 Chắc chắn Docker Desktop đang mở. Chạy `docker compose ps` tại thư mục `backend` để kiểm tra `mysql-db` phải ở trạng thái `healthy`.
+  👉 Chắc chắn Docker Desktop đang mở. Chạy `docker compose ps` tại thư mục gốc để kiểm tra container `mysql-db` phải ở trạng thái `healthy`.
 - **Lỗi Flyway Checksum Mismatch:** 
-  👉 Do bạn đã "lỡ tay" sửa nội dung một file `.sql` đã được chạy trước đó. Chỉ dùng cho local, sau khi đã chấp nhận xóa dữ liệu: `docker compose down -v`, rồi chạy lại `docker compose up --build -d`.
-- **Lỗi cổng 3306 hoặc 8080 đã được sử dụng:**
-  👉 Tắt các phần mềm đang chiếm dụng cổng (như XAMPP, Skype, hoặc một project Spring Boot khác đang bật).
+  👉 Do bạn đã "lỡ tay" sửa nội dung một file `.sql` đã được chạy trước đó. Để reset sạch volume database trên local: chạy `docker compose down -v` tại thư mục gốc, rồi chạy lại `docker compose up --build -d`.
+- **Lỗi cổng 3306, 8080, 8000 hoặc 3000 đã được sử dụng:**
+  👉 Tắt các phần mềm hoặc container cũ đang chiếm dụng cổng trên máy.
