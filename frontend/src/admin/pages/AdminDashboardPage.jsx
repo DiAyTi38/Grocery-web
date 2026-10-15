@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../services/api";
+
 
 function AdminDashboardPage() {
   const navigate = useNavigate();
@@ -26,10 +28,10 @@ function AdminDashboardPage() {
         };
 
         const [usersRes, productsRes, categoriesRes, ordersRes] = await Promise.all([
-          fetch("http://localhost:8080/api/users", { headers }),
-          fetch("http://localhost:8080/api/products", { headers }),
-          fetch("http://localhost:8080/api/categories", { headers }),
-          fetch("http://localhost:8080/api/orders/admin", { headers }),
+          fetch(`${API_BASE_URL}/users`, { headers }),
+          fetch(`${API_BASE_URL}/products`, { headers }),
+          fetch(`${API_BASE_URL}/categories`, { headers }),
+          fetch(`${API_BASE_URL}/orders/admin`, { headers }),
         ]);
 
         const usersData = usersRes.ok ? await usersRes.json() : [];

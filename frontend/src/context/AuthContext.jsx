@@ -1,8 +1,8 @@
 import { createContext, useContext, useState } from "react";
+import { API_BASE_URL } from "../services/api";
 
 const AuthContext = createContext(null);
 
-const API_BASE_URL = "http://localhost:8080/api";
 
 // Gọi API đăng nhập và đăng ký.
 async function postAuth(path, body) {

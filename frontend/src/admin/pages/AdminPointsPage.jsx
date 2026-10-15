@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
+import { API_BASE_URL } from "../../services/api";
 import "../Admin.css";
+
 
 const money = (value) => `${(Number(value) || 0).toLocaleString("vi-VN")} ₫`;
 
@@ -74,7 +76,7 @@ export default function AdminPointsPage() {
         throw new Error("Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.");
       }
 
-      const response = await fetch(`http://localhost:8080/api${path}`, {
+      const response = await fetch(`${API_BASE_URL}${path}`, {
         ...options,
         headers: {
           "Content-Type": "application/json",
