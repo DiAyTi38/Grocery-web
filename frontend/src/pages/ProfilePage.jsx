@@ -268,21 +268,66 @@ export default function ProfilePage() {
       return;
     }
 
-    if (file.size > 5 * 1024 * 1024) {
-      setError("Ảnh không được lớn hơn 5MB.");
+    if (file.size > 10 * 1024 * 1024) {
+      setError("Ảnh không được lớn hơn 10MB.");
       return;
     }
 
     const reader = new FileReader();
 
     reader.onload = () => {
-      setProfile((current) => ({
-        ...current,
-        avatar: reader.result,
-      }));
+      const rawResult = reader.result;
+      const img = new Image();
 
-      setError("");
-      setMessage("Đã chọn ảnh đại diện mới.");
+      img.onload = () => {
+        try {
+          const maxDim = 600;
+          let width = img.width;
+          let height = img.height;
+
+          if (width > maxDim || height > maxDim) {
+            if (width > height) {
+              height = Math.round((height * maxDim) / width);
+              width = maxDim;
+            } else {
+              width = Math.round((width * maxDim) / height);
+              height = maxDim;
+            }
+          }
+
+          const canvas = document.createElement("canvas");
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, width, height);
+
+          const optimizedDataUrl = canvas.toDataURL("image/jpeg", 0.85);
+
+          setProfile((current) => ({
+            ...current,
+            avatar: optimizedDataUrl,
+          }));
+        } catch {
+          setProfile((current) => ({
+            ...current,
+            avatar: rawResult,
+          }));
+        }
+
+        setError("");
+        setMessage("Đã chọn ảnh đại diện mới.");
+      };
+
+      img.onerror = () => {
+        setProfile((current) => ({
+          ...current,
+          avatar: rawResult,
+        }));
+        setError("");
+        setMessage("Đã chọn ảnh đại diện mới.");
+      };
+
+      img.src = rawResult;
     };
 
     reader.readAsDataURL(file);
@@ -468,7 +513,7 @@ export default function ProfilePage() {
                     <div className="profile-avatar-actions">
                       <h3>Ảnh đại diện</h3>
 
-                      <p>Hỗ trợ JPG, PNG hoặc WEBP. Tối đa 5MB.</p>
+                      <p>Hỗ trợ JPG, PNG hoặc WEBP. Tối đa 10MB.</p>
 
                       <input
                         ref={fileInputRef}
