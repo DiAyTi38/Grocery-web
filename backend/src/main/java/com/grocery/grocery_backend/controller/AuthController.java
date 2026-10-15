@@ -72,4 +72,22 @@ public class AuthController {
 
         return ResponseEntity.ok("User registered successfully!");
     }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<?> forgotPassword(@Valid @RequestBody com.grocery.grocery_backend.model.dto.ForgotPasswordRequest request) {
+        String cleanEmail = request.getEmail().trim().toLowerCase();
+        User user = userRepository.findByEmail(cleanEmail)
+                .orElseThrow(() -> new org.springframework.web.server.ResponseStatusException(
+                        org.springframework.http.HttpStatus.NOT_FOUND, "Không tìm thấy tài khoản với email: " + request.getEmail()));
+
+        if (!user.isEnabled()) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, "Tài khoản này đã bị vô hiệu hóa, không thể đặt lại mật khẩu.");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return ResponseEntity.ok(java.util.Map.of("message", "Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới."));
+    }
 }

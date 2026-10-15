@@ -29,6 +29,7 @@ import java.util.List;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final org.springframework.security.crypto.password.PasswordEncoder passwordEncoder;
 
     @GetMapping("/profile")
     public ResponseEntity<UserProfileDto> getProfile(Authentication authentication) {
@@ -43,8 +44,29 @@ public class UserController {
         user.setFullName(updateProfileRequest.getFullName());
         user.setPhone(normalizeBlank(updateProfileRequest.getPhone()));
         user.setAddress(normalizeBlank(updateProfileRequest.getAddress()));
+        if (updateProfileRequest.getAvatarUrl() != null) {
+            user.setAvatarUrl(normalizeBlank(updateProfileRequest.getAvatarUrl()));
+        }
+        user.setGender(normalizeBlank(updateProfileRequest.getGender()));
+        user.setBirthDate(normalizeBlank(updateProfileRequest.getBirthDate()));
 
         return ResponseEntity.ok(UserProfileDto.from(userRepository.save(user)));
+    }
+
+    @PutMapping("/change-password")
+    public ResponseEntity<?> changePassword(
+            Authentication authentication,
+            @Valid @RequestBody com.grocery.grocery_backend.model.dto.ChangePasswordRequest request) {
+        User user = getCurrentUser(authentication);
+
+        if (!passwordEncoder.matches(request.getCurrentPassword(), user.getPassword())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Mật khẩu hiện tại không chính xác.");
+        }
+
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+
+        return ResponseEntity.ok(java.util.Map.of("message", "Đổi mật khẩu thành công!"));
     }
 
     @GetMapping

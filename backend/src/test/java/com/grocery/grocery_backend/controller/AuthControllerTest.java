@@ -171,4 +171,72 @@ class AuthControllerTest {
 
         verify(userRepository, never()).save(any(User.class));
     }
+
+    @Test
+    @DisplayName("Forgot Password - Đặt lại mật khẩu thành công khi email tồn tại")
+    void forgotPassword_Success() throws Exception {
+        com.grocery.grocery_backend.model.dto.ForgotPasswordRequest request =
+                new com.grocery.grocery_backend.model.dto.ForgotPasswordRequest("alice@example.com", "newpassword123");
+
+        User existingUser = User.builder()
+                .id(1L)
+                .username("alice")
+                .email("alice@example.com")
+                .password("oldHashedPassword")
+                .enabled(true)
+                .role(Role.ROLE_USER)
+                .build();
+
+        when(userRepository.findByEmail("alice@example.com")).thenReturn(java.util.Optional.of(existingUser));
+        when(passwordEncoder.encode("newpassword123")).thenReturn("newHashedPassword");
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Đặt lại mật khẩu thành công! Vui lòng đăng nhập với mật khẩu mới."));
+
+        verify(userRepository).save(existingUser);
+    }
+
+    @Test
+    @DisplayName("Forgot Password - Báo 404 khi email không tồn tại")
+    void forgotPassword_EmailNotFound_ReturnsNotFound() throws Exception {
+        com.grocery.grocery_backend.model.dto.ForgotPasswordRequest request =
+                new com.grocery.grocery_backend.model.dto.ForgotPasswordRequest("notfound@example.com", "newpassword123");
+
+        when(userRepository.findByEmail("notfound@example.com")).thenReturn(java.util.Optional.empty());
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+
+        verify(userRepository, never()).save(any(User.class));
+    }
+
+    @Test
+    @DisplayName("Forgot Password - Báo lỗi khi tài khoản bị vô hiệu hóa")
+    void forgotPassword_DisabledUser_ReturnsBadRequest() throws Exception {
+        com.grocery.grocery_backend.model.dto.ForgotPasswordRequest request =
+                new com.grocery.grocery_backend.model.dto.ForgotPasswordRequest("locked@example.com", "newpassword123");
+
+        User disabledUser = User.builder()
+                .id(2L)
+                .username("locked")
+                .email("locked@example.com")
+                .password("oldHashedPassword")
+                .enabled(false)
+                .role(Role.ROLE_USER)
+                .build();
+
+        when(userRepository.findByEmail("locked@example.com")).thenReturn(java.util.Optional.of(disabledUser));
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+
+        verify(userRepository, never()).save(any(User.class));
+    }
 }

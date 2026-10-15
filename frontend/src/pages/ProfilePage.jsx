@@ -104,7 +104,7 @@ function getTransactionMeta(type, points) {
 
 export default function ProfilePage() {
   const navigate = useNavigate();
-  const { user, token, updateProfile, changePassword } = useAuth();
+  const { user, token, updateProfile, changePassword, fetchProfile } = useAuth();
   const fileInputRef = useRef(null);
 
   const [profile, setProfile] = useState({
@@ -114,9 +114,26 @@ export default function ProfilePage() {
     birthDate: user?.birthDate || "",
     phone: user?.phone || "",
     address: user?.address || "",
-    avatar: user?.avatar || "",
+    avatar: user?.avatarUrl || user?.avatar || "",
     totalSpent: Number(user?.totalSpent) || 0,
   });
+
+  // Đồng bộ state profile khi dữ liệu user trong AuthContext được cập nhật hoặc nạp từ API
+  useEffect(() => {
+    if (user) {
+      setProfile((prev) => ({
+        ...prev,
+        name: user.fullName || user.name || prev.name,
+        email: user.email || prev.email,
+        gender: user.gender ?? prev.gender,
+        birthDate: user.birthDate ?? prev.birthDate,
+        phone: user.phone ?? prev.phone,
+        address: user.address ?? prev.address,
+        avatar: user.avatarUrl || user.avatar || prev.avatar,
+        totalSpent: Number(user.totalSpent) || prev.totalSpent,
+      }));
+    }
+  }, [user]);
 
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -124,6 +141,8 @@ export default function ProfilePage() {
 
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [activeSection, setActiveSection] = useState("profile");
 
   // Dữ liệu Loyalty từ Backend
@@ -139,6 +158,9 @@ export default function ProfilePage() {
     if (!token) return;
 
     try {
+      if (typeof fetchProfile === "function") {
+        fetchProfile().catch(() => {});
+      }
       const [loyaltyData, transData, ordersData] = await Promise.all([
         getMyLoyaltyApi(token).catch((err) => {
           console.warn("Lỗi tải thông tin điểm:", err);
@@ -271,18 +293,25 @@ export default function ProfilePage() {
 
     setMessage("");
     setError("");
+    setIsSavingProfile(true);
 
-    const result = await updateProfile(profile);
+    try {
+      const result = await updateProfile(profile);
 
-    if (!result.success) {
-      setError(result.message);
-      return;
+      if (!result.success) {
+        setError(result.message);
+        return;
+      }
+
+      setMessage(result.message);
+    } catch (err) {
+      setError(err.message || "Không thể cập nhật hồ sơ.");
+    } finally {
+      setIsSavingProfile(false);
     }
-
-    setMessage(result.message);
   }
 
-  function handleChangePassword(event) {
+  async function handleChangePassword(event) {
     event.preventDefault();
 
     setMessage("");
@@ -293,18 +322,30 @@ export default function ProfilePage() {
       return;
     }
 
-    const result = changePassword(currentPassword, newPassword);
-
-    if (!result.success) {
-      setError(result.message);
+    if (newPassword.length < 6) {
+      setError("Mật khẩu mới phải có ít nhất 6 ký tự.");
       return;
     }
 
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    setIsChangingPassword(true);
+    try {
+      const result = await changePassword(currentPassword, newPassword);
 
-    setMessage(result.message);
+      if (!result.success) {
+        setError(result.message);
+        return;
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+
+      setMessage(result.message);
+    } catch (err) {
+      setError(err.message || "Không thể đổi mật khẩu.");
+    } finally {
+      setIsChangingPassword(false);
+    }
   }
 
   function goHome() {
@@ -519,8 +560,12 @@ export default function ProfilePage() {
                   </div>
 
                   <div className="profile-form-footer">
-                    <button type="submit" className="profile-save-button">
-                      Lưu thay đổi
+                    <button
+                      type="submit"
+                      className="profile-save-button"
+                      disabled={isSavingProfile}
+                    >
+                      {isSavingProfile ? "Đang lưu..." : "Lưu thay đổi"}
                     </button>
                   </div>
                 </form>
@@ -579,8 +624,12 @@ export default function ProfilePage() {
                     />
                   </div>
 
-                  <button type="submit" className="profile-save-button">
-                    Đổi mật khẩu
+                  <button
+                    type="submit"
+                    className="profile-save-button"
+                    disabled={isChangingPassword}
+                  >
+                    {isChangingPassword ? "Đang xử lý..." : "Đổi mật khẩu"}
                   </button>
                 </form>
               </div>

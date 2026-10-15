@@ -13,8 +13,9 @@ export default function ForgotPasswordPage() {
 
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
     setError("");
@@ -45,23 +46,30 @@ export default function ForgotPasswordPage() {
       return;
     }
 
-    const result = resetPassword(
-      email,
-      newPassword
-    );
+    setIsSubmitting(true);
+    try {
+      const result = await resetPassword(
+        email,
+        newPassword
+      );
 
-    if (!result.success) {
-      setError(result.message);
-      return;
+      if (!result.success) {
+        setError(result.message);
+        return;
+      }
+
+      setSuccess(result.message);
+
+      setTimeout(() => {
+        navigate("/login", {
+          replace: true,
+        });
+      }, 1500);
+    } catch (err) {
+      setError(err.message || "Đã xảy ra lỗi khi đặt lại mật khẩu.");
+    } finally {
+      setIsSubmitting(false);
     }
-
-    setSuccess(result.message);
-
-    setTimeout(() => {
-      navigate("/login", {
-        replace: true,
-      });
-    }, 1500);
   }
 
   return (
@@ -163,8 +171,9 @@ export default function ForgotPasswordPage() {
           <button
             type="submit"
             className="auth-primary auth-submit"
+            disabled={isSubmitting}
           >
-            Đổi mật khẩu
+            {isSubmitting ? "Đang xử lý..." : "Đổi mật khẩu"}
           </button>
 
         </form>

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useState, useEffect } from "react";
 import { API_BASE_URL } from "../services/api";
 
 const AuthContext = createContext(null);
@@ -152,6 +152,7 @@ export function AuthProvider({ children }) {
   });
 
   function buildCurrentUser(account) {
+    if (!account) return null;
     const totalSpent = Number(account.totalSpent) || 0;
     const roles = Array.isArray(account.roles)
       ? account.roles
@@ -160,22 +161,49 @@ export function AuthProvider({ children }) {
       ? "ROLE_ADMIN"
       : account.role || "ROLE_USER";
 
+    const avatar = account.avatarUrl || account.avatar || "";
+
     return {
       id: account.id,
       username: account.username || "",
-      name: account.name || account.fullName || account.username || "",
+      name: account.fullName || account.name || account.username || "",
+      fullName: account.fullName || account.name || account.username || "",
       email: account.email || "",
       role: role,
       roles: roles,
       isAdmin: roles.includes("ROLE_ADMIN") || role === "ROLE_ADMIN",
-      avatar: account.avatar || "",
+      avatar: avatar,
+      avatarUrl: avatar,
       gender: account.gender || "",
       birthDate: account.birthDate || "",
       phone: account.phone || "",
+      address: account.address || "",
       totalSpent,
       loyaltyTier: getLoyaltyTier(totalSpent),
     };
   }
+
+  // Tự động đồng bộ thông tin hồ sơ mới nhất từ CSDL khi khởi động hoặc F5
+  useEffect(() => {
+    if (!token) return;
+
+    adminRequest("/users/profile", token)
+      .then((profileData) => {
+        if (profileData) {
+          setUser((prev) => {
+            const merged = buildCurrentUser({
+              ...(prev || {}),
+              ...profileData,
+            });
+            localStorage.setItem("smart-grocery-user", JSON.stringify(merged));
+            return merged;
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn("Lỗi đồng bộ hồ sơ cá nhân:", err.message);
+      });
+  }, [token]);
 
   function saveSession(jwtToken, currentUser) {
     setToken(jwtToken);
@@ -383,9 +411,25 @@ export function AuthProvider({ children }) {
     });
   }
 
-  // Lấy thông tin hồ sơ khách hàng.
+  // Lấy thông tin hồ sơ khách hàng từ CSDL.
   async function fetchProfile() {
-    return adminRequest("/users/profile", token);
+    if (!token) return null;
+    try {
+      const profileData = await adminRequest("/users/profile", token);
+      if (profileData) {
+        const currentUser = buildCurrentUser({
+          ...(user || {}),
+          ...profileData,
+        });
+        setUser(currentUser);
+        localStorage.setItem("smart-grocery-user", JSON.stringify(currentUser));
+        return currentUser;
+      }
+      return null;
+    } catch (err) {
+      console.warn("Lỗi fetchProfile:", err.message);
+      return null;
+    }
   }
 
   // Cập nhật thông tin hồ sơ khách hàng (nối API PUT /api/users/profile)
@@ -397,15 +441,24 @@ export function AuthProvider({ children }) {
           fullName: profileData.name || profileData.fullName,
           phone: profileData.phone,
           address: profileData.address,
+          avatarUrl: profileData.avatar || profileData.avatarUrl,
+          gender: profileData.gender,
+          birthDate: profileData.birthDate,
         }),
       });
 
-      const updatedUser = {
-        ...user,
-        name: data.fullName || user.name,
-        phone: data.phone || user.phone,
-        address: data.address || user.address,
-      };
+      const updatedUser = buildCurrentUser({
+        ...(user || {}),
+        ...data,
+        name: data.fullName || profileData.name || profileData.fullName,
+        fullName: data.fullName || profileData.name || profileData.fullName,
+        avatar: data.avatarUrl || profileData.avatar || user?.avatar || "",
+        avatarUrl: data.avatarUrl || profileData.avatar || user?.avatar || "",
+        gender: data.gender || profileData.gender || user?.gender || "",
+        birthDate: data.birthDate || profileData.birthDate || user?.birthDate || "",
+        phone: data.phone || profileData.phone || user?.phone || "",
+        address: data.address || profileData.address || user?.address || "",
+      });
 
       setUser(updatedUser);
       localStorage.setItem("smart-grocery-user", JSON.stringify(updatedUser));
@@ -423,19 +476,47 @@ export function AuthProvider({ children }) {
     }
   }
 
-  // Các chức năng phụ trợ
-  async function resetPassword() {
-    return {
-      success: false,
-      message: "Chức năng quên mật khẩu cần được bổ sung API ở backend.",
-    };
+  // Quên mật khẩu (nối API POST /api/auth/forgot-password)
+  async function resetPassword(email, newPassword) {
+    try {
+      const result = await postAuth("forgot-password", {
+        email: String(email || "").trim().toLowerCase(),
+        newPassword,
+      });
+
+      return {
+        success: true,
+        message: typeof result === "string" ? result : result?.message || "Đặt lại mật khẩu thành công!",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Không thể đặt lại mật khẩu.",
+      };
+    }
   }
 
-  async function changePassword() {
-    return {
-      success: false,
-      message: "Chức năng đổi mật khẩu cần được bổ sung API ở backend.",
-    };
+  // Đổi mật khẩu tài khoản (nối API PUT /api/users/change-password)
+  async function changePassword(currentPassword, newPassword) {
+    try {
+      const result = await adminRequest("/users/change-password", token, {
+        method: "PUT",
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      return {
+        success: true,
+        message: typeof result === "string" ? result : result?.message || "Đổi mật khẩu thành công!",
+      };
+    } catch (error) {
+      return {
+        success: false,
+        message: error.message || "Không thể đổi mật khẩu.",
+      };
+    }
   }
 
   function addSpent(amount) {
