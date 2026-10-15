@@ -106,3 +106,9 @@ jobs:
           cd ai-service
           python -m py_compile src/main.py src/predictor.py src/schemas.py
           python -c "from src.main import app; print('✅ FastAPI App & Model loaded successfully!')"
+
+      - name: Run Pytest Unit Tests
+        run: |
+          cd ai-service
+          pytest tests/ -v
+
