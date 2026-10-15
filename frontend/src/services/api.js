@@ -1,4 +1,5 @@
-const API_BASE_URL = "http://localhost:8080/api";
+const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "http://localhost:8080/api";
 
 export async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -92,7 +93,9 @@ export async function clearCartApi(token) {
 // ======================================================
 
 export async function checkoutOrderApi(token, autoDeliver = false) {
-  const url = autoDeliver ? "/orders/checkout?autoDeliver=true" : "/orders/checkout";
+  const url = autoDeliver
+    ? "/orders/checkout?autoDeliver=true"
+    : "/orders/checkout";
   return apiRequest(url, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}` },
