@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useAuth } from "../context/AuthContext";
 import { getProductById, addToCartApi } from "../services/api";
+import { getProductRealImage } from "../utils/productImages";
 
 function ProductDetailPage() {
   const navigate = useNavigate();
@@ -18,7 +19,11 @@ function ProductDetailPage() {
   // Lấy sản phẩm từ state hoặc gọi API nếu vào thẳng link / F5
   useEffect(() => {
     if (location.state?.product) {
-      setProduct(location.state.product);
+      const p = location.state.product;
+      setProduct({
+        ...p,
+        imageUrl: getProductRealImage(p.name, p.category) || p.imageUrl,
+      });
       setLoading(false);
     } else if (id) {
       setLoading(true);
@@ -33,6 +38,7 @@ function ProductDetailPage() {
             unit: data.unit || "Phần",
             stock: data.availableQuantity ?? data.stockQuantity ?? 10,
             description: data.description,
+            imageUrl: getProductRealImage(data.name, data.categoryName) || data.imageUrl,
             emoji: "🛒",
             color: "#e8f8f0",
           });
@@ -142,10 +148,26 @@ function ProductDetailPage() {
           <div
             className="product-detail-image"
             style={{
-              backgroundColor: product.color || "#f5f5f5",
+              backgroundColor: product.color || "#f8fafc",
             }}
           >
-            <span>{product.emoji || "🛒"}</span>
+            {product.imageUrl ? (
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="detail-real-img"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  if (e.currentTarget.nextElementSibling) {
+                    e.currentTarget.nextElementSibling.style.display = "block";
+                  }
+                }}
+              />
+            ) : null}
+            <span style={{ display: product.imageUrl ? "none" : "block" }}>
+              {product.emoji || "🛒"}
+            </span>
 
             {product.tag && (
               <div className="product-detail-tag">
@@ -367,6 +389,19 @@ function ProductDetailPage() {
           filter: drop-shadow(
             0 15px 15px rgba(0, 0, 0, 0.12)
           );
+        }
+
+        .detail-real-img {
+          width: 85%;
+          max-height: 420px;
+          object-fit: contain;
+          border-radius: 16px;
+          transition: transform 0.3s ease;
+          filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.09));
+        }
+
+        .detail-real-img:hover {
+          transform: scale(1.03);
         }
 
         .product-detail-tag {

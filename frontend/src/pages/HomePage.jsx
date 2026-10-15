@@ -13,6 +13,7 @@ import {
   getAiRecommendationsApi,
   refreshAiPredictionsApi,
 } from "../services/api";
+import { getProductRealImage } from "../utils/productImages";
 import "../App.css";
 
 const DEFAULT_CATEGORIES = [
@@ -65,6 +66,7 @@ function formatProduct(p) {
     oldPrice: p.price ? Math.round(Number(p.price) * 1.15) : null,
     unit: p.unit || "Phần",
     stock: stock,
+    imageUrl: getProductRealImage(p.name, categoryName) || p.imageUrl,
     emoji: getProductEmoji(p.name, categoryName),
     tag: stock <= 10 ? "SẮP HẾT" : (p.price > 100000 ? "HOT" : "FRESH"),
     color: getProductColor(categoryName),
@@ -290,6 +292,8 @@ function ProductCard({ product, onAdd, favorite, onFavorite }) {
     });
   }
 
+  const realImg = getProductRealImage(product.name, product.category) || product.imageUrl;
+
   return (
     <article className="product-card" onClick={handleProductClick}>
       {product.tag && <span className="product-tag">{product.tag}</span>}
@@ -308,10 +312,27 @@ function ProductCard({ product, onAdd, favorite, onFavorite }) {
       <div
         className="product-image"
         style={{
-          backgroundColor: product.color,
+          backgroundColor: product.color || "#f8fafc",
         }}
       >
-        <span>{product.emoji}</span>
+        {realImg ? (
+          <img
+            src={realImg}
+            alt={product.name}
+            className="product-real-img"
+            loading="lazy"
+            referrerPolicy="no-referrer"
+            onError={(e) => {
+              e.currentTarget.style.display = "none";
+              if (e.currentTarget.nextElementSibling) {
+                e.currentTarget.nextElementSibling.style.display = "inline-block";
+              }
+            }}
+          />
+        ) : null}
+        <span style={{ display: realImg ? "none" : "inline-block" }}>
+          {product.emoji || "🛒"}
+        </span>
       </div>
 
       <div className="product-info">
@@ -423,15 +444,27 @@ function AiReplenishmentRow({
               name: item.productName,
             };
           const price = prod?.price;
+          const realImg = getProductRealImage(item.productName) || item.productImageUrl || prod?.imageUrl;
 
           return (
             <div key={item.productId} className="ai-product-card">
               <div className="ai-card-image-wrap">
-                {item.productImageUrl ? (
-                  <img src={item.productImageUrl} alt={item.productName} />
-                ) : (
-                  <span>{getProductEmoji(item.productName)}</span>
-                )}
+                {realImg ? (
+                  <img
+                    src={realImg}
+                    alt={item.productName}
+                    referrerPolicy="no-referrer"
+                    onError={(e) => {
+                      e.currentTarget.style.display = "none";
+                      if (e.currentTarget.nextElementSibling) {
+                        e.currentTarget.nextElementSibling.style.display = "inline-block";
+                      }
+                    }}
+                  />
+                ) : null}
+                <span style={{ display: realImg ? "none" : "inline-block" }}>
+                  {getProductEmoji(item.productName)}
+                </span>
               </div>
 
               <div className="ai-card-body">
@@ -515,15 +548,19 @@ export default function HomePage() {
 
   function formatCartItems(cartDto) {
     if (!cartDto || !cartDto.items) return [];
-    return cartDto.items.map((item) => ({
-      id: item.id, // ID chi tiết giỏ hàng (CartItem) để update/delete
-      productId: item.productId,
-      name: item.productName,
-      price: Number(item.unitPrice),
-      quantity: item.quantity,
-      subtotal: Number(item.subtotal),
-      emoji: getProductEmoji(item.productName),
-    }));
+    return cartDto.items.map((item) => {
+      const prod = productsList.find((p) => p.id === item.productId);
+      return {
+        id: item.id, // ID chi tiết giỏ hàng (CartItem) để update/delete
+        productId: item.productId,
+        name: item.productName,
+        price: Number(item.unitPrice),
+        quantity: item.quantity,
+        subtotal: Number(item.subtotal),
+        imageUrl: prod?.imageUrl || getProductRealImage(item.productName),
+        emoji: getProductEmoji(item.productName),
+      };
+    });
   }
 
   // Tải danh mục từ backend
@@ -977,7 +1014,26 @@ export default function HomePage() {
               <>
                 {cart.map((item) => (
                   <div className="cart-item" key={item.id}>
-                    <span className="cart-item-emoji">{item.emoji}</span>
+                    {item.imageUrl ? (
+                      <img
+                        src={item.imageUrl}
+                        alt={item.name}
+                        className="cart-thumb-img"
+                        referrerPolicy="no-referrer"
+                        onError={(e) => {
+                          e.currentTarget.style.display = "none";
+                          if (e.currentTarget.nextElementSibling) {
+                            e.currentTarget.nextElementSibling.style.display = "inline-flex";
+                          }
+                        }}
+                      />
+                    ) : null}
+                    <span
+                      className="cart-item-emoji"
+                      style={{ display: item.imageUrl ? "none" : "inline-flex" }}
+                    >
+                      {item.emoji}
+                    </span>
 
                     <div className="cart-item-info">
                       <strong>{item.name}</strong>
