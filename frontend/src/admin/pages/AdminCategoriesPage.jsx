@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import "../admin.css";
+import "../Admin.css";
 
 export default function AdminCategoriesPage() {
   const { token } = useAuth();

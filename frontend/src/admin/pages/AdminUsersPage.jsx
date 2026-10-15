@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import "../admin.css";
+import "../Admin.css";
 
 export default function AdminUsersPage() {
   const { user, token, getAdminUsers, updateAdminUserStatus } = useAuth();

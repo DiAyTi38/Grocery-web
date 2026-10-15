@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "../../context/AuthContext";
-import "../admin.css";
+import "../Admin.css";
 
 const EMPTY_FORM = {
   name: "",

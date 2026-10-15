@@ -4,7 +4,7 @@ import {
   getAllOrdersAdminApi,
   updateOrderStatusAdminApi,
 } from "../../services/api";
-import "../admin.css";
+import "../Admin.css";
 
 const money = (value) => `${(Number(value) || 0).toLocaleString("vi-VN")} ₫`;
 

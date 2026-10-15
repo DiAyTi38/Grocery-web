@@ -7,6 +7,12 @@
 -- Allow order_id to be NULL for synthetic/imported historical data
 ALTER TABLE purchase_history MODIFY COLUMN order_id BIGINT NULL;
 
+-- Đảm bảo tồn tại 2 tài khoản mẫu (dattran, admin) với mật khẩu: password123 để thỏa mãn khóa ngoại fk_purchase_history_user
+INSERT INTO users (id, username, email, password, full_name, role, enabled) VALUES
+(1, 'dattran', 'dattran@example.com', '$2a$10$JCuHkknlh7eCdcBDJd0ywehxXXaOeCmZaeOeO3Mtpo7WifFtj/BIe', 'Trần Tiến Đạt', 'ROLE_USER', TRUE),
+(2, 'admin', 'admin@example.com', '$2a$10$JCuHkknlh7eCdcBDJd0ywehxXXaOeCmZaeOeO3Mtpo7WifFtj/BIe', 'Quản trị viên', 'ROLE_ADMIN', TRUE)
+ON DUPLICATE KEY UPDATE id=id;
+
 -- ====================================================================
 -- User 1 (dattran): Typical family shopper
 --   - Buys vegetables every ~3-4 days (high frequency)
