@@ -66,3 +66,9 @@ env/
 *.py[cod]
 *$py.class
 .pytest_cache/
+
+# ==========================================
+# 7. Database Backups
+# ==========================================
+backups/*.sql
+!backups/.gitkeep

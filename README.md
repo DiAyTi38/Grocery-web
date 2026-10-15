@@ -99,6 +99,36 @@ Toàn bộ team phải tuân thủ quy tắc chia nhánh (branch) sau để trá
 
 ---
 
+## 🔄 Tích hợp liên tục (CI/CD Pipeline)
+
+Dự án sử dụng **GitHub Actions** (`.github/workflows/ci.yml`) để tự động kiểm thử mỗi khi có `push` hoặc `pull_request` vào nhánh `develop` hoặc `main`:
+1. **Backend Check:** Khởi tạo container MySQL 8.0 dịch vụ trên GitHub Runner, biên dịch Spring Boot và chạy toàn bộ unit/integration test (`mvn test`).
+2. **Frontend Check:** Cài đặt dependencies (`npm ci`) và build thử bản production của React Vite (`npm run build`).
+3. **AI Service Check:** Thiết lập môi trường Python 3.10, kiểm tra cú pháp mã nguồn và xác minh tính toàn vẹn của mô hình scikit-learn (`purchase_model.joblib`).
+
+---
+
+## 💾 Sao lưu & Phục hồi cơ sở dữ liệu (Disaster Recovery)
+
+Tại thư mục gốc, hệ thống đã trang bị sẵn bộ công cụ tự động sao lưu và phục hồi:
+
+- **Sao lưu dữ liệu (Backup):**
+  ```bash
+  ./scripts/backup-db.sh
+  ```
+  File dump SQL dạng nén sẽ được tự động tạo và lưu trữ tại thư mục `backups/grocery_backup_<timestamp>.sql`.
+
+- **Phục hồi dữ liệu (Restore):**
+  ```bash
+  # Phục hồi từ bản sao lưu gần nhất:
+  ./scripts/restore-db.sh
+
+  # Hoặc chỉ định rõ file sao lưu cần nạp:
+  ./scripts/restore-db.sh backups/grocery_backup_20261015_213548.sql
+  ```
+
+---
+
 ## 🐛 Khắc phục sự cố thường gặp (Troubleshooting)
 
 - **Lỗi "Cannot connect to database":** 
@@ -107,3 +137,4 @@ Toàn bộ team phải tuân thủ quy tắc chia nhánh (branch) sau để trá
   👉 Do bạn đã "lỡ tay" sửa nội dung một file `.sql` đã được chạy trước đó. Để reset sạch volume database trên local: chạy `docker compose down -v` tại thư mục gốc, rồi chạy lại `docker compose up --build -d`.
 - **Lỗi cổng 3306, 8080, 8000 hoặc 3000 đã được sử dụng:**
   👉 Tắt các phần mềm hoặc container cũ đang chiếm dụng cổng trên máy.
+
