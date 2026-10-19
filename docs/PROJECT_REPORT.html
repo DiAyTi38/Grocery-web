@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="vi" >
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Báo Cáo Dự Án Smart Grocery</title>
+    <!--[if gte mso 9]>
+    <xml>
+        <w:WordDocument>
+            <w:View>Print</w:View>
+            <w:Zoom>100</w:Zoom>
+            <w:DoNotOptimizeForBrowser/>
+        </w:WordDocument>
+    </xml>
+    <![endif]-->
+    <style>
+        @page {
+            size: A4;
+            margin: 20mm 18mm 20mm 18mm;
+            mso-header-margin: 35.4pt;
+            mso-footer-margin: 35.4pt;
+            mso-paper-source: 0;
+        }
+        @page WordSection1 {
+            size: 595.3pt 841.9pt;
+            margin: 54.0pt 54.0pt 54.0pt 54.0pt;
+        }
+        div.WordSection1 {
+            page: WordSection1;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-size: 10.5pt;
+            line-height: 1.6;
+            color: #1e293b;
+            background-color: #ffffff;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 24px 32px;
+        }
+        h1 {
+            font-size: 20pt;
+            color: #0f172a;
+            border-bottom: 2px solid #0284c7;
+            padding-bottom: 8px;
+            margin-top: 24pt;
+            margin-bottom: 12pt;
+            page-break-after: avoid;
+        }
+        h2 {
+            font-size: 15pt;
+            color: #0369a1;
+            border-bottom: 1px solid #e2e8f0;
+            padding-bottom: 6px;
+            margin-top: 18pt;
+            margin-bottom: 10pt;
+            page-break-after: avoid;
+        }
+        h3 {
+            font-size: 12.5pt;
+            color: #0f172a;
+            margin-top: 14pt;
+            margin-bottom: 8pt;
+            page-break-after: avoid;
+        }
+        h4 {
+            font-size: 11pt;
+            color: #334155;
+            margin-top: 10pt;
+            margin-bottom: 6pt;
+            page-break-after: avoid;
+        }
+        p {
+            margin-top: 0;
+            margin-bottom: 8pt;
+            text-align: justify;
+        }
+        a {
+            color: #0284c7;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        hr {
+            border: none;
+            border-top: 1px solid #cbd5e1;
+            margin: 16pt 0;
+        }
+        /* Tables */
+        .table-container {
+            width: 100%;
+            margin: 12pt 0;
+            overflow-x: auto;
+            page-break-inside: avoid;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 9.5pt;
+            margin-bottom: 8pt;
+        }
+        th, td {
+            border: 1px solid #cbd5e1;
+            padding: 8px 10px;
+            vertical-align: top;
+        }
+        th {
+            background-color: #f1f5f9;
+            color: #0f172a;
+            font-weight: 600;
+        }
+        tr:nth-child(even) td {
+            background-color: #f8fafc;
+        }
+        /* Callouts / Alerts */
+        .callout {
+            border-radius: 6px;
+            padding: 12px 16px;
+            margin: 12pt 0;
+            font-size: 10pt;
+            page-break-inside: avoid;
+        }
+        .callout-title {
+            font-size: 10.5pt;
+            margin-bottom: 6px;
+        }
+        .callout-body {
+            line-height: 1.5;
+        }
+        /* Code Blocks */
+        pre {
+            background-color: #0f172a;
+            color: #f8fafc;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 9pt;
+            overflow-x: auto;
+            margin: 10pt 0;
+            page-break-inside: avoid;
+            line-height: 1.45;
+        }
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 9.5pt;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            padding: 2px 5px;
+            border-radius: 4px;
+        }
+        pre code {
+            background-color: transparent;
+            color: inherit;
+            padding: 0;
+        }
+        .mermaid-diagram pre {
+            background-color: #f8fafc;
+            color: #0f172a;
+            border: 1px solid #cbd5e1;
+        }
+        .math-block {
+            background-color: #f8fafc;
+            border-left: 3px solid #6366f1;
+            padding: 8px 14px;
+            margin: 10pt 0;
+            font-family: serif;
+            font-size: 11pt;
+            page-break-inside: avoid;
+        }
+        .math {
+            font-family: serif;
+            font-style: italic;
+            background: #f1f5f9;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+        ul, ol {
+            margin-top: 0;
+            margin-bottom: 8pt;
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 4pt;
+        }
+    </style>
+</head>
+<body>
+<div class="WordSection1">
+    <div class="container">
+        <h1 id="bo-co-tng-kt--nh-gi-d-n-h-thng-smart-grocery">BÁO CÁO TỔNG KẾT &amp; ĐÁNH GIÁ DỰ ÁN HỆ THỐNG SMART GROCERY</h1>
+<p><strong>Hệ thống Thương Mại Điện Tử Nhu Yếu Phẩm Thông Minh Tích Hợp Trí Tuệ Nhân Tạo (AI)</strong></p>
+<hr/>
+<div class="callout callout-note" style="border-left: 4px solid #3b82f6; background-color: #eff6ff;">
+            <div class="callout-title" style="color: #3b82f6;"><strong>💡 Ghi chú Kỹ thuật</strong></div>
+            <div class="callout-body"><strong>Thông tin đồ án / Dự án:</strong><br/>- <strong>Tên dự án:</strong> Smart Grocery E-commerce System<br/>- <strong>Nhóm thực hiện:</strong> Nhóm 4 (Tech Lead &amp; Backend Lead: Trần Tiến Đạt)<br/>- <strong>Thời điểm đánh giá:</strong> Tháng 10/2026<br/>- <strong>Trạng thái kho mã nguồn:</strong> <code>develop</code> branch (Clean working tree, commit: <code>0768b6c</code>)<br/>- <strong>Môi trường triển khai:</strong> Docker Compose Multi-Container (Frontend, Backend, AI Service, MySQL 8.0, Cloudflare Tunnel Gateway)</div>
+        </div>
+<hr/>
+<h2 id="mc-lc">MỤC LỤC</h2>
+<ol>
+<li><a href="#1-tổng-quan-dự-án--bối-cảnh-nghiệp-vụ">TỔNG QUAN DỰ ÁN &amp; BỐI CẢNH NGHIỆP VỤ</a></li>
+<li><a href="#2-ma-trận-hiện-trạng-tính-năng-feature-matrix">MA TRẬN HIỆN TRẠNG TÍNH NĂNG (FEATURE MATRIX)</a></li>
+<li><a href="#3-kiến-trúc-hệ-thống--ngăn-xếp-công-nghệ-tech-stack">KIẾN TRÚC HỆ THỐNG &amp; NGĂN XẾP CÔNG NGHỆ (TECH STACK)</a></li>
+<li><a href="#4-đặc-tả-chi-tiết-các-module-cốt-lõi">ĐẶC TẢ CHI TIẾT CÁC MODULE CỐT LÕI</a></li>
+</ol>
+<ul>
+<li>4.1. Hệ thống Xác thực &amp; Phân quyền (Auth &amp; RBAC)</li>
+<li>4.2. Quản lý Danh mục, Sản phẩm &amp; Tồn kho (Catalog &amp; Inventory)</li>
+<li>4.3. Giỏ hàng, Đặt hàng &amp; Xử lý Đồng thời (Cart &amp; Checkout Concurrency)</li>
+<li>4.4. Hệ thống Khách hàng Thân thiết (Loyalty &amp; Tiering Ecosystem)</li>
+<li>4.5. Động cơ Trí tuệ Nhân tạo Dự báo Chu kỳ Tiêu dùng (AI Replenishment Engine)</li>
+<li>4.6. Hạ tầng DevOps, CI/CD &amp; Disaster Recovery</li>
+</ul>
+<ol>
+<li><a href="#5-đánh-giá-phản-biện-chuyên-sâu-critical-audit--blind-spots">ĐÁNH GIÁ PHẢN BIỆN CHUYÊN SÂU (CRITICAL AUDIT &amp; BLIND SPOTS)</a></li>
+</ol>
+<ul>
+<li>5.1. Sai lệch giữa Kịch bản Huấn luyện AI và CSDL Thực tế</li>
+<li>5.2. Các bảng CSDL bị &quot;treo&quot; và Mã nguồn rác (Dead Code)</li>
+<li>5.3. Tính năng còn Dang dở trên Giao diện (Stub / Mock UI)</li>
+<li>5.4. Lỗ hổng Vận hành &amp; Rủi ro Kiến trúc Bảo mật</li>
+<li>5.5. Hạn chế trong Chiến lược Kiểm thử Tự động</li>
+</ul>
+<ol>
+<li><a href="#6-lộ-trình-nâng-cấp--hoàn-thiện-actionable-roadmap">LỘ TRÌNH NÂNG CẤP &amp; HOÀN THIỆN (ACTIONABLE ROADMAP)</a></li>
+<li><a href="#7-tổng-kết--kết-luận">TỔNG KẾT &amp; KẾT LUẬN</a></li>
+</ol>
+<hr/>
+<h2 id="1-tng-quan-d-n--bi-cnh-nghip-v">1. TỔNG QUAN DỰ ÁN &amp; BỐI CẢNH NGHIỆP VỤ</h2>
+<h3 id="11-bi-ton-thc-t">1.1. Bài toán Thực tế</h3>
+<p>Khác biệt cốt lõi giữa ngành thương mại điện tử nhu yếu phẩm (Grocery / FMCG) so với thương mại điện tử thông thường (thời trang, điện máy) nằm ở <strong>tính chất tiêu dùng lặp lại có chu kỳ (Replenishment Cycle)</strong>:</p>
+<ul>
+<li>Người tiêu dùng không mua ngẫu hứng một chai nước mắm, túi gạo hay bó rau, mà tiêu thụ chúng theo tốc độ sinh hoạt gia đình cố định (rau: 3-4 ngày, sữa tươi: 7 ngày, gạo/đồ khô: 14-30 ngày).</li>
+<li>Khách hàng thường xuyên rơi vào trạng thái &quot;quên mua&quot; dẫn đến cạn kiệt thực phẩm sinh hoạt, hoặc cảm thấy phiền phức khi mỗi tuần đều phải tự tìm kiếm và chọn lại các mặt hàng quen thuộc.</li>
+<li>Về phía nhà bán hàng, việc giữ chân khách hàng (retention rate) và dự báo được nhu cầu tiêu thụ trước để tối ưu hóa lượng hàng tồn kho là yếu tố sống còn.</li>
+</ul>
+<h3 id="12-gii-php-ca-smart-grocery">1.2. Giải pháp của Smart Grocery</h3>
+<p>Dự án xây dựng một nền tảng bán lẻ nhu yếu phẩm đa nền tảng kết hợp kiến trúc dịch vụ phân tán (Service-Oriented Architecture), trong đó:</p>
+<ol>
+<li><strong>Core Commerce:</strong> Cung cấp trải nghiệm mua sắm trực tuyến mượt mà, phân loại sản phẩm, quản lý giỏ hàng và đặt hàng an toàn chống overselling.</li>
+<li><strong>Khách hàng thân thiết (Loyalty Ecosystem):</strong> Tự động tích điểm, nâng hạng thành viên (Member -&gt; Silver -&gt; Gold), thúc đẩy giá trị trọn đời của khách hàng (CLV).</li>
+<li><strong>Động cơ AI Dự báo Tiêu dùng (AI Replenishment Engine):</strong> Thuật toán học máy phân tích lịch sử giao dịch trong quá khứ để tự động tính toán thời điểm chính xác khách hàng sắp hết đồ dùng, chủ động nhắc nhở khách hàng mua bổ sung với độ tin cậy được định lượng theo thời gian thực.</li>
+<li><strong>Hệ thống Quản trị (Admin Portal):</strong> Quản trị toàn diện từ danh mục, sản phẩm, kho hàng, tài khoản người dùng, đơn hàng đến quỹ điểm thưởng.</li>
+</ol>
+<hr/>
+<h2 id="2-ma-trn-hin-trng-tnh-nng-feature-matrix">2. MA TRẬN HIỆN TRẠNG TÍNH NĂNG (FEATURE MATRIX)</h2>
+<div class="table-container"><table>
+<thead><tr>
+<th style="text-align: left;">Module / Tính năng</th>
+<th style="text-align: left;">Mô tả nghiệp vụ</th>
+<th style="text-align: center;">Frontend UI</th>
+<th style="text-align: center;">Backend API</th>
+<th style="text-align: center;">Database (Flyway)</th>
+<th style="text-align: center;">Đánh giá hiện trạng</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Xác thực Đăng ký / Đăng nhập</strong></td>
+<td style="text-align: left;">JWT Stateless, BCrypt hash, RBAC (<code>ROLE_USER</code>, <code>ROLE_ADMIN</code>)</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>users</code>, <code>roles</code>, <code>user_roles</code></td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong> (Có kiểm thử tự động)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hồ sơ Cá nhân (Profile)</strong></td>
+<td style="text-align: left;">Xem / Cập nhật tên, SĐT, địa chỉ, ảnh đại diện Avatar, giới tính, ngày sinh</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>users</code> (V2, V14)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong> (Đồng bộ CSDL khi F5)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Quên &amp; Đổi Mật Khẩu</strong></td>
+<td style="text-align: left;">Quên mật khẩu qua email &amp; Đổi mật khẩu tài khoản trực tiếp</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>users.password</code> (BCrypt)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong> (Có kiểm thử tự động)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Quản trị Tài khoản (Admin Users)</strong></td>
+<td style="text-align: left;">Xem danh sách người dùng, kích hoạt / khóa tài khoản (<code>enabled</code>)</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>users.enabled</code> (V3)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Danh mục &amp; Sản phẩm (Catalog)</strong></td>
+<td style="text-align: left;">Phân cấp danh mục, tìm kiếm, lọc theo danh mục, quản lý ảnh</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>categories</code>, <code>products</code> (V4, V9, V13)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Quản trị Sản phẩm &amp; Kho hàng</strong></td>
+<td style="text-align: left;">Thêm/Sửa/Xóa sản phẩm, cập nhật tồn kho, ngưỡng cảnh báo</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>inventory</code> (V4)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Giỏ hàng (Cart)</strong></td>
+<td style="text-align: left;">Thêm, sửa số lượng, xóa sản phẩm, tính tổng tiền</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>carts</code>, <code>cart_items</code> (V6)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Thanh toán &amp; Đặt hàng (Checkout)</strong></td>
+<td style="text-align: left;">Chốt đơn từ giỏ hàng, trừ kho với Khóa bi quan, hoàn kho khi hủy đơn</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>orders</code>, <code>order_items</code> (V6)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong> (COD / Auto-deliver)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Cổng Thanh toán Trực tuyến</strong></td>
+<td style="text-align: left;">Thanh toán qua VNPAY, MoMo, Thẻ tín dụng</td>
+<td style="text-align: center;">❌ Chưa có</td>
+<td style="text-align: center;">❌ Chưa có</td>
+<td style="text-align: center;">❌ Chưa có</td>
+<td style="text-align: center;"><strong>Chưa triển khai</strong> (Hiện dùng COD nội bộ)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Lịch sử Giao dịch (Purchase History)</strong></td>
+<td style="text-align: left;">Tự động ghi nhận khi đơn hàng giao thành công (<code>DELIVERED</code>)</td>
+<td style="text-align: center;">✅ Gián tiếp</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>purchase_history</code> (V6, V8)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ví Điểm Thưởng (Loyalty Account)</strong></td>
+<td style="text-align: left;">Tích điểm (10k = 1đ), thăng hạng (Silver/Gold), thưởng thăng hạng</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>loyalty_accounts</code> (V7)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Lịch sử Giao dịch Điểm</strong></td>
+<td style="text-align: left;">Ghi log minh bạch các giao dịch <code>EARN</code>, <code>UPGRADE</code>, <code>ADJUSTMENT</code></td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>loyalty_transactions</code> (V7, V12)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Admin Điều chỉnh Điểm</strong></td>
+<td style="text-align: left;">Admin cộng/trừ điểm thủ công kèm lý do giải trình</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Gói Đăng ký Định kỳ (Subscriptions)</strong></td>
+<td style="text-align: left;">Đặt lịch giao hàng tự động lặp lại theo tuần/tháng</td>
+<td style="text-align: center;">❌ Chưa có</td>
+<td style="text-align: center;">❌ Chưa có</td>
+<td style="text-align: center;">⚠️ <code>subscriptions</code> (V7)</td>
+<td style="text-align: center;"><strong>Tồn đọng schema</strong> (Có bảng DB nhưng chưa code)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>AI Dự báo Chu kỳ Mua lại</strong></td>
+<td style="text-align: left;">FastAPI + Random Forest + Fallback 3 tầng + Staleness time-decay</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ <code>ai_predictions</code> (V7, V10, V11)</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong> (Đột phá kỹ thuật)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>DevOps &amp; CI/CD</strong></td>
+<td style="text-align: left;">Docker Compose toàn bộ stack, GitHub Actions, Nginx Reverse Proxy</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;">✅ Tự động hóa</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Sao lưu &amp; Khôi phục CSDL</strong></td>
+<td style="text-align: left;">Script bash dump/restore tự động</td>
+<td style="text-align: center;">N/A</td>
+<td style="text-align: center;">N/A</td>
+<td style="text-align: center;">✅ <code>scripts/*.sh</code></td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Phát sóng Demo Ra Ngoài (Tunnel)</strong></td>
+<td style="text-align: left;">Cloudflare Tunnel HTTPS công khai kèm mã QR</td>
+<td style="text-align: center;">N/A</td>
+<td style="text-align: center;">N/A</td>
+<td style="text-align: center;">✅ Hoàn thiện</td>
+<td style="text-align: center;"><strong>100% Hoàn thành</strong></td>
+</tr>
+</tbody>
+</table></div>
+<hr/>
+<h2 id="3-kin-trc-h-thng--ngn-xp-cng-ngh-tech-stack">3. KIẾN TRÚC HỆ THỐNG &amp; NGĂN XẾP CÔNG NGHỆ (TECH STACK)</h2>
+<h3 id="31-s--kin-trc-tng-th-system-architecture">3.1. Sơ đồ Kiến trúc Tổng thể (System Architecture)</h3>
+<div class="mermaid-diagram"><pre class="mermaid-code"><code>flowchart TB
+    subgraph ClientLayer[&quot;Lớp Client &amp; Cổng Truy Cập&quot;]
+        UserBrowser[&quot;Trình duyệt Khách hàng (SPA)&quot;]
+        AdminBrowser[&quot;Trình duyệt Quản trị viên (Admin SPA)&quot;]
+        MobileUsers[&quot;Người dùng Điện thoại (Quét QR Cloudflare)&quot;]
+    end
+
+    subgraph GatewayLayer[&quot;Lớp Mạng &amp; Điều phối Gateway (Nginx:80 / Cloudflare)&quot;]
+        CFTunnel[&quot;Cloudflare Tunnel (HTTPS)&quot;]
+        NginxGateway[&quot;Nginx Reverse Proxy (Frontend Container)&quot;]
+    end
+
+    subgraph ApplicationLayer[&quot;Lớp Ứng dụng &amp; Dịch vụ Nền tảng&quot;]
+        FrontendService[&quot;Frontend App\n(React 19 + Vite 8 SPA)\nPort: 3000 -&gt; 80&quot;]
+        
+        BackendService[&quot;Backend Core Service\n(Spring Boot 4.1.1 + Java 25 / 17)\nRESTful API - Port: 8080\nReactive WebClient Engine&quot;]
+        
+        AIService[&quot;AI Inference Engine\n(Python 3.10 + FastAPI + Scikit-Learn)\nPort: 8000\nRandomForestRegressor&quot;]
+    end
+
+    subgraph DataLayer[&quot;Lớp Lưu trữ &amp; Dữ liệu (MySQL 8.0)&quot;]
+        MySQLDB[(&quot;MySQL Database: 3306\n- Database: smart_grocery\n- Flyway Versioning: V1 -&gt; V13\n- Engine: InnoDB\n- Isolation: Read Committed&quot;)]
+    end
+
+    UserBrowser --&gt; NginxGateway
+    AdminBrowser --&gt; NginxGateway
+    MobileUsers --&gt; CFTunnel --&gt; NginxGateway
+
+    NginxGateway -- &quot;/* (Static Assets)&quot; --&gt; FrontendService
+    NginxGateway -- &quot;/api/* (API Requests)&quot; --&gt; BackendService
+
+    BackendService -- &quot;Non-blocking Reactive HTTP\n(Flux parallel concurrency=8)&quot; --&gt; AIService
+    BackendService -- &quot;JPA / Hibernate / JDBC Pool&quot; --&gt; MySQLDB</code></pre></div>
+<h3 id="32-bng-phn-tch-cng-ngh-chi-tit">3.2. Bảng Phân Tích Công Nghệ Chi Tiết</h3>
+<div class="table-container"><table>
+<thead><tr>
+<th style="text-align: left;">Thành phần</th>
+<th style="text-align: left;">Công nghệ lựa chọn</th>
+<th style="text-align: left;">Phiên bản</th>
+<th style="text-align: left;">Vai trò &amp; Lý do lựa chọn kỹ thuật</th>
+</tr></thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><strong>Frontend Framework</strong></td>
+<td style="text-align: left;">React.js</td>
+<td style="text-align: left;">19.2.8</td>
+<td style="text-align: left;">Giao diện hiện đại, Component hóa cao, khả năng quản trị state tập trung với Context API.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Build Tool</strong></td>
+<td style="text-align: left;">Vite</td>
+<td style="text-align: left;">8.3.0</td>
+<td style="text-align: left;">Tốc độ biên dịch Hot Module Replacement (HMR) cực nhanh, tối ưu hóa bundle tĩnh khi deploy Docker.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Routing</strong></td>
+<td style="text-align: left;">React Router</td>
+<td style="text-align: left;">7.18.4</td>
+<td style="text-align: left;">Hỗ trợ định tuyến Client-side (SPA), phân tách rõ ràng Route công khai (<code>GuestRoute</code>), Khách hàng (<code>ProtectedRoute</code>) và Quản trị (<code>AdminProtectedRoute</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Backend Core</strong></td>
+<td style="text-align: left;">Spring Boot</td>
+<td style="text-align: left;">4.1.1</td>
+<td style="text-align: left;">Framework công nghiệp mạnh mẽ hàng đầu cho Java, quản trị Dependency Injection, Transactional và bảo mật chặt chẽ.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Ngôn ngữ Backend</strong></td>
+<td style="text-align: left;">Java (JDK)</td>
+<td style="text-align: left;">25 / 17 LTS</td>
+<td style="text-align: left;">Hiệu năng cao, quản lý bộ nhớ tốt, hệ sinh thái thư viện phong phú.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Bảo mật Backend</strong></td>
+<td style="text-align: left;">Spring Security + JWT</td>
+<td style="text-align: left;">6.x / jjwt</td>
+<td style="text-align: left;">Kiến trúc xác thực Stateless không lưu Session trên Server, thích ứng hoàn hảo với kiến trúc SPA và Reverse Proxy.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Tương tác CSDL</strong></td>
+<td style="text-align: left;">Spring Data JPA / Hibernate</td>
+<td style="text-align: left;">6.x</td>
+<td style="text-align: left;">Tự động hóa CRUD, tối ưu hóa truy vấn qua JPQL và Native Query, quản lý vòng đời Entity.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Quản trị Schema</strong></td>
+<td style="text-align: left;">Flyway Migration</td>
+<td style="text-align: left;">10.x</td>
+<td style="text-align: left;">Kiểm soát phiên bản CSDL bằng mã nguồn SQL (Database as Code), loại bỏ lỗi lệch cấu trúc bảng giữa các máy dev trong nhóm.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Động cơ AI</strong></td>
+<td style="text-align: left;">Python FastAPI</td>
+<td style="text-align: left;">0.110+</td>
+<td style="text-align: left;">Framework Python tốc độ cao hỗ trợ Asynchronous (ASGI), chuẩn hóa Request/Response bằng Pydantic.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Thư viện Học máy</strong></td>
+<td style="text-align: left;">Scikit-Learn</td>
+<td style="text-align: left;">1.4+</td>
+<td style="text-align: left;">Mô hình <code>RandomForestRegressor</code> có độ chính xác cao đối với dữ liệu bảng (tabular data), đo lường được mức độ phân tán của các cây quyết định.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Hệ Quản trị CSDL</strong></td>
+<td style="text-align: left;">MySQL Community Server</td>
+<td style="text-align: left;">8.0</td>
+<td style="text-align: left;">Hỗ trợ ACID, ràng buộc khóa ngoại chặt chẽ, tối ưu hóa Transaction và hỗ trợ Khóa bi quan (<code>SELECT FOR UPDATE</code>).</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Reverse Proxy</strong></td>
+<td style="text-align: left;">Nginx Alpine</td>
+<td style="text-align: left;">1.25+</td>
+<td style="text-align: left;">Cầu nối duy nhất phục vụ SPA tĩnh và proxy trong suốt toàn bộ request <code>/api/</code> về Backend, xóa bỏ hoàn toàn lỗi CORS khi ra Internet.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Containerization</strong></td>
+<td style="text-align: left;">Docker &amp; Docker Compose</td>
+<td style="text-align: left;">Compose v2</td>
+<td style="text-align: left;">Đóng gói toàn bộ 4 dịch vụ thành một lệnh chạy duy nhất, đồng nhất môi trường từ dev đến staging.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>CI/CD</strong></td>
+<td style="text-align: left;">GitHub Actions</td>
+<td style="text-align: left;">Runner v4</td>
+<td style="text-align: left;">Tự động hóa kiểm thử mã nguồn, kích hoạt container MySQL kiểm tra build Spring Boot, React và AI khi tạo Pull Request.</td>
+</tr>
+<tr>
+<td style="text-align: left;"><strong>Đường hầm Mạng</strong></td>
+<td style="text-align: left;">Cloudflare Tunnel</td>
+<td style="text-align: left;">Latest</td>
+<td style="text-align: left;">Cung cấp tên miền HTTPS có chứng chỉ SSL hợp lệ để demo trực tiếp trên thiết bị di động mà không cần mở port modem.</td>
+</tr>
+</tbody>
+</table></div>
+<hr/>
+<h2 id="4-c-t-chi-tit-cc-module-ct-li">4. ĐẶC TẢ CHI TIẾT CÁC MODULE CỐT LÕI</h2>
+<h3 id="41-h-thng-xc-thc--phn-quyn-auth--rbac">4.1. Hệ thống Xác thực &amp; Phân quyền (Auth &amp; RBAC)</h3>
+<ul>
+<li><strong>Mã hóa mật khẩu:</strong> Sử dụng <code>BCryptPasswordEncoder</code> với salt tự động, đảm bảo an toàn tuyệt đối ngay cả khi dữ liệu bị lộ.</li>
+<li><strong>Cấu trúc JWT Token:</strong> Chứa thông tin <code>sub</code> (username), <code>iat</code> (ngày phát hành), <code>exp</code> (thời hạn 24h). Ký số bằng thuật toán HMAC-SHA256 (<code>Keys.hmacShaKeyFor</code>).</li>
+<li><strong>Phân quyền dựa trên vai trò (Role-Based Access Control):</strong></li>
+<li>Khách hàng đăng ký mới mặc định nhận quyền <code>ROLE_USER</code>.</li>
+<li>Quản trị viên mang quyền <code>ROLE_ADMIN</code>.</li>
+<li>Được bảo vệ 2 lớp:</li>
+</ul>
+<ol>
+<li>Lớp Filter <code>SecurityFilterChain</code>: Chặn truy cập trái phép ở tầng URL HTTP (<code>/api/inventory/<strong></code>, <code>/api/orders/admin/</strong></code> chỉ dành cho ADMIN).</li>
+<li>Lớp Phương thức <code>@PreAuthorize(&quot;hasRole(&#x27;ADMIN&#x27;)&quot;)</code>: Bảo vệ sâu trong từng phương thức Controller.</li>
+</ol>
+<h3 id="42-qun-l-danh-mc-sn-phm--tn-kho-catalog--inventory">4.2. Quản lý Danh mục, Sản phẩm &amp; Tồn kho (Catalog &amp; Inventory)</h3>
+<ul>
+<li><strong>Chuẩn hóa quan hệ 1 - 1 giữa Sản phẩm và Kho hàng:</strong></li>
+<li>Bảng <code>products</code> lưu trữ thông tin kinh doanh: SKU, Tên, Mô tả, Đơn vị tính, Giá bán, Ảnh minh họa, Trạng thái hoạt động (<code>active</code>).</li>
+<li>Bảng <code>inventory</code> phụ trách tính toàn vẹn vật lý: <code>quantity</code> (số lượng thực tế trong kho), <code>reserved_quantity</code> (số lượng đang tạm giữ cho đơn hàng), <code>low_stock_threshold</code> (ngưỡng cảnh báo sắp hết hàng).</li>
+<li><strong>Cơ chế Soft Delete (Xóa mềm):</strong> Khi Admin xóa sản phẩm, hệ thống chuyển cờ <code>active = FALSE</code> thay vì xóa vật lý khỏi MySQL. Điều này bảo vệ tính toàn vẹn dữ liệu cho các đơn hàng cũ và lịch sử mua sắm trong quá khứ.</li>
+<li><strong>Kiểm soát hiển thị:</strong> Các API công khai (<code>/api/products</code>) mặc định lọc chỉ trả về các sản phẩm đang <code>active = TRUE</code>.</li>
+</ul>
+<h3 id="43-gi-hng-t-hng--x-l-ng-thi-cart--checkout-concurrency">4.3. Giỏ hàng, Đặt hàng &amp; Xử lý Đồng thời (Cart &amp; Checkout Concurrency)</h3>
+<h4 id="quy-trnh-checkout--kha-bi-quan-pessimistic-locking">Quy trình Checkout &amp; Khóa Bi Quan (Pessimistic Locking)</h4>
+<p>Tại các đợt mở bán hoặc sản phẩm có lượng tồn kho thấp, bài toán đặt ra là: Nếu 2 người dùng cùng lúc bấm Đặt hàng khi sản phẩm chỉ còn 1 cái, hệ thống phải xử lý như thế nào để không bị âm kho (Overselling)?</p>
+<p>Dự án đã triển khai giải pháp <strong>Khóa Bi Quan (Pessimistic Write Lock)</strong> trực tiếp tại tầng CSDL:</p>
+<pre><code class="language-java">// InventoryRepository.java
+@Lock(LockModeType.PESSIMISTIC_WRITE)
+@Query(&quot;SELECT i FROM Inventory i WHERE i.product.id = :productId&quot;)
+Optional&lt;Inventory&gt; findByProductIdForUpdate(@Param(&quot;productId&quot;) Long productId);</code></pre>
+<p><strong>Luồng xử lý <code>@Transactional</code>:</strong></p>
+<ol>
+<li>Spring Boot mở transaction, gửi câu lệnh SQL <code>SELECT ... FOR UPDATE</code> tới MySQL.</li>
+<li>MySQL áp đặt khóa ghi độc quyền trên bản ghi kho hàng của sản phẩm đó. Mọi transaction khác cố gắng truy vấn cập nhật sản phẩm này đều bị chặn chờ.</li>
+<li>Hệ thống kiểm tra: <code>if (inventory.getQuantity() &lt; cartItem.getQuantity())</code> -&gt; Ném ngoại lệ <code>BAD_REQUEST</code>, tự động Rollback toàn bộ transaction.</li>
+<li>Nếu đủ hàng: Khấu trừ tồn kho -&gt; Tạo đơn hàng <code>orders</code> (trạng thái <code>PENDING</code>) -&gt; Tạo chi tiết <code>order_items</code> -&gt; Xóa rỗng giỏ hàng <code>carts</code>.</li>
+<li>Sau khi commit transaction, khóa được giải phóng an toàn.</li>
+</ol>
+<h4 id="hon-tr-tn-kho-khi-hy-n-auto-restoration">Hoàn trả tồn kho khi Hủy đơn (Auto-Restoration)</h4>
+<p>Khi đơn hàng bị chuyển trạng thái sang <code>CANCELLED</code> (bởi User hoặc Admin), hàm <code>restoreInventory(order)</code> sẽ lập tức cộng ngược số lượng sản phẩm vào kho hàng tương ứng, sử dụng cùng cơ chế Khóa Bi Quan.</p>
+<h3 id="44-h-thng-khch-hng-thn-thit-loyalty--tiering-ecosystem">4.4. Hệ thống Khách hàng Thân thiết (Loyalty &amp; Tiering Ecosystem)</h3>
+<div class="mermaid-diagram"><pre class="mermaid-code"><code>stateDiagram-v2
+    [*] --&gt; MEMBER: Đăng ký tài khoản mới\n(Ví điểm tự tạo ngầm)
+    
+    MEMBER --&gt; SILVER: Tổng chi tiêu tích lũy &gt;= 5.000.000 ₫\n(Thưởng ngay +50 điểm)
+    SILVER --&gt; GOLD: Tổng chi tiêu tích lũy &gt;= 20.000.000 ₫\n(Thưởng ngay +200 điểm)
+    
+    note right of MEMBER
+      Quy tắc tích điểm:
+      Cứ 10.000 ₫ = 1 Điểm
+      Điểm cộng khi đơn hàng DELIVERED
+    end note</code></pre></div>
+<ul>
+<li><strong>Ví điểm tự khởi tạo ngầm (Auto-Provisioning):</strong> Khi một khách hàng vừa tạo tài khoản gọi API ví điểm (<code>GET /api/loyalty/me</code>), nếu chưa có bản ghi, hệ thống tự khởi tạo <code>LoyaltyAccount</code> với hạng <code>MEMBER</code> và 0 điểm, triệt tiêu lỗi <code>NullPointerException</code>.</li>
+<li><strong>Kích hoạt tự động khi Đơn hàng Hoàn thành (<code>DELIVERED</code>):</strong></li>
+<li>Tích điểm: <span class="math">\text{Points} = \lfloor \frac{\text{TotalAmount}}{10,000} \rfloor</span>.</li>
+<li>Tự động cộng dồn <code>totalSpend</code>.</li>
+<li>Tự động thăng hạng và ghi nhận giao dịch <code>UPGRADE</code> kèm điểm thưởng.</li>
+<li><strong>Ghi chép giao dịch minh bạch (Audit Trail):</strong> Mọi biến động điểm số đều sinh ra bản ghi <code>LoyaltyTransaction</code> với loại giao dịch rõ ràng: <code>EARN</code> (mua hàng), <code>UPGRADE</code> (thăng hạng), <code>REDEEM</code> (tiêu điểm), <code>ADJUSTMENT</code> (Admin can thiệp thủ công kèm lý do).</li>
+</ul>
+<h3 id="45-ng-c-tr-tu-nhn-to-d-bo-chu-k-tiu-dng-ai-replenishment-engine">4.5. Động cơ Trí tuệ Nhân tạo Dự báo Chu kỳ Tiêu dùng (AI Replenishment Engine)</h3>
+<p>Đây là module đột phá và sở hữu hàm lượng kỹ thuật cao nhất của hệ thống:</p>
+<div class="mermaid-diagram"><pre class="mermaid-code"><code>flowchart TD
+    UserTrigger[&quot;Khách hàng xem Trang chủ / Bấm &#x27;Làm mới gợi ý&#x27;&quot;] --&gt; CheckCache{&quot;Đã có dự đoán trong DB\n(ai_predictions)?&quot;}
+    
+    CheckCache -- &quot;Có sẵn &amp; Chưa làm mới&quot; --&gt; ApplyStaleness[&quot;Áp dụng Bộ 3 Quy tắc Staleness &amp; Overdue&quot;]
+    
+    CheckCache -- &quot;Chưa có hoặc Bấm Refresh&quot; --&gt; QueryHistory[&quot;Truy vấn Lịch sử Mua sắm\n(purchase_history)&quot;]
+    
+    QueryHistory --&gt; CheckActiveItems{&quot;Lọc sản phẩm\nactive = TRUE?&quot;}
+    CheckActiveItems -- &quot;Không có dữ liệu mua&quot; --&gt; CascadingFallback[&quot;Kích hoạt Fallback Phân tầng&quot;]
+    
+    CheckActiveItems -- &quot;Có lịch sử mua hàng&quot; --&gt; GroupProducts[&quot;Gom nhóm theo Sản phẩm\n(chỉ nhận &gt;= 2 lần mua)&quot;]
+    
+    GroupProducts --&gt; CheckAIHealth{&quot;Python AI Service\n(Port 8000) có sống?&quot;}
+    
+    CheckAIHealth -- &quot;Sống &amp; Phản hồi&quot; --&gt; ReactiveFlux[&quot;Gọi song song qua WebClient Flux\n(Concurrency Limit = 8, Timeout = 5s)&quot;]
+    ReactiveFlux --&gt; ModelPredict[&quot;FastAPI suy luận Random Forest\n(7 Features + Dynamic Confidence)&quot;]
+    ModelPredict --&gt; SavePredictions[&quot;Lưu DB (ai_predictions)\nUNIQUE (user_id, product_id)&quot;]
+    
+    CheckAIHealth -- &quot;Chết hoặc Lỗi mạng&quot; --&gt; EmbeddedEngine[&quot;Fallback: Động cơ Nội tại Java\n(calculateNextReplenishmentDate)&quot;]
+    EmbeddedEngine --&gt; SavePredictions
+    
+    SavePredictions --&gt; ApplyStaleness
+    
+    ApplyStaleness --&gt; Rule1{&quot;Quy tắc 1: Quá hạn\n&gt; 7 ngày?&quot;}
+    Rule1 -- &quot;Đúng&quot; --&gt; Discard[&quot;Loại bỏ khỏi khối nhắc mua\n(Thói quen đã chấm dứt)&quot;]
+    Rule1 -- &quot;Sai&quot; --&gt; Rule2[&quot;Quy tắc 2: Khấu trừ Độ tin cậy theo thời gian\n(Linear Time-Decay Penalty)&quot;]
+    
+    Rule2 --&gt; CheckCount{&quot;Danh sách gợi ý\n&lt; 5 sản phẩm?&quot;}
+    Discard --&gt; CheckCount
+    
+    CheckCount -- &quot;Đúng (&lt; 5 món)&quot; --&gt; CascadingFallback
+    CheckCount -- &quot;Đủ (&gt;= 5 món)&quot; --&gt; RenderUI[&quot;Hiển thị thẻ gợi ý trên Giao diện\n(Kèm Badge % Độ tin cậy)&quot;]
+    
+    CascadingFallback --&gt; TopSelling[&quot;Tầng 1: Top 5 Bán chạy nhất Hệ thống\n(Native SQL: purchase_history + p.active = 1)&quot;]
+    TopSelling --&gt; CheckStillShort{&quot;Vẫn chưa đủ 5 món\n(Cold-start mới tạo)?&quot;}
+    CheckStillShort -- &quot;Đúng&quot; --&gt; CatalogFill[&quot;Tầng 2: Bù sản phẩm Active mới nhất từ Catalog\n(Khử trùng lặp qua Set)&quot;]
+    CheckStillShort -- &quot;Sai&quot; --&gt; RenderUI
+    CatalogFill --&gt; RenderUI</code></pre></div>
+<h4 id="a-kin-trc-model-hc-my-python-fastapi">A. Kiến trúc Model Học máy (Python FastAPI)</h4>
+<ul>
+<li><strong>Thuật toán:</strong> <code>RandomForestRegressor</code> với 200 Decision Trees (<code>n_estimators=200</code>, <code>min_samples_leaf=2</code>).</li>
+<li><strong>Tập đặc trưng (7 Features):</strong></li>
+</ul>
+<ol>
+<li><code>purchase_count</code>: Tổng số lần khách từng mua mặt hàng này.</li>
+<li><code>average_interval</code>: Khoảng cách ngày trung bình giữa các lần mua.</li>
+<li><code>last_interval</code>: Khoảng cách ngày giữa 2 lần mua gần nhất.</li>
+<li><code>average_quantity</code>: Số lượng mua trung bình mỗi lần.</li>
+<li><code>last_quantity</code>: Số lượng mua của lần gần nhất.</li>
+<li><code>category_type</code>: Mã hóa danh mục (<code>FOOD: 0</code>, <code>COSMETIC: 1</code>, <code>CONSUMER: 2</code>).</li>
+<li><code>reminder_interval_days</code>: Chu kỳ định mức sinh học/tiêu dùng của nhóm sản phẩm.</li>
+</ol>
+<ul>
+<li><strong>Công thức tính Độ tin cậy Động (Dynamic Confidence):</strong></li>
+</ul>
+<p>  Thay vì gán một con số cố định, độ tin cậy được đo lường dựa trên sự đồng thuận của mô hình và tính ổn định của khách hàng:</p>
+<div class="math-block"><code>\text{IntervalScore} = \frac{1}{1 + \text{CV}_{\text{interval}}}, \quad \text{TreeScore} = \frac{1}{1 + \text{CV}_{\text{trees}}}, \quad \text{QtyScore} = \frac{1}{1 + \text{CV}_{\text{qty}}}</code></div>
+<div class="math-block"><code>\text{BaseConfidence} = 0.50 \cdot \text{IntervalScore} + 0.35 \cdot \text{TreeScore} + 0.15 \cdot \text{QtyScore}</code></div>
+<div class="math-block"><code>\text{FinalConfidence} = \text{BaseConfidence} \times \left(0.70 + 0.30 \cdot \min\left(1, \frac{\text{Count} - 2}{4}\right)\right)</code></div>
+<p>  <em>(Giới hạn chuẩn hóa trong khoảng <span class="math">[0.35, 0.98]</span>)</em>.</p>
+<h4 id="b-t-ph-k-thut-gi-song-song-reactive-non-blocking-flux">B. Đột phá Kỹ thuật Gọi song song Reactive (Non-blocking Flux)</h4>
+<p>Trước đây, các hệ thống Java thường gọi song song bằng <code>CompletableFuture.supplyAsync()</code>. Điểm yếu chết người của giải pháp này là nó chiếm dụng <code>ForkJoinPool.commonPool()</code> của JVM để thực hiện Blocking I/O mạng, dễ dẫn đến nghẽn toàn bộ luồng xử lý của ứng dụng (Thread Starvation).</p>
+<p>Dự án đã tối ưu hóa bằng <strong>Spring WebClient Reactive Flux</strong>:</p>
+<pre><code class="language-java">// AiServiceClient.java
+return Flux.fromIterable(requests)
+    .flatMap(req -&gt; webClient.post()
+            .uri(&quot;/api/ai/predict&quot;)
+            .bodyValue(req)
+            .retrieve()
+            .bodyToMono(AiSchemas.PredictionResponse.class)
+            .timeout(Duration.ofSeconds(5))
+            .onErrorResume(Exception.class, e -&gt; Mono.empty()),
+        8 // Giới hạn tối đa 8 requests đồng thời sang Python để chống nghẽn socket
+    )
+    .collectList()
+    .blockOptional(Duration.ofSeconds(10))
+    .orElseGet(List::of);</code></pre>
+<h4 id="c-b-3-quy-tc-x-l-hn-dng--qu-hn-d-bo-staleness--overdue-policy">C. Bộ 3 Quy tắc Xử lý Hạn dùng &amp; Quá hạn Dự báo (Staleness &amp; Overdue Policy)</h4>
+<ol>
+<li><strong>Quy tắc 1 (Overdue Cut-off Threshold):</strong> Nếu một sản phẩm đã quá hạn dự kiến vượt quá 7 ngày (<code>predictedDays &lt; -7</code>), sản phẩm đó bị coi là <strong>thói quen tiêu dùng đã chấm dứt (Churned Habit)</strong> và bị loại bỏ ngay lập tức khỏi khối &quot;Nhắc mua lại định kỳ&quot;. Tuyệt đối không hiển thị các con số ngày âm vô nghĩa (<code>-30 ngày</code>, <code>-60 ngày</code>) lên UI.</li>
+<li><strong>Quy tắc 2 (Time-Decay Penalty on Confidence):</strong> Áp dụng trực tiếp tại tầng chuyển đổi DTO:</li>
+</ol>
+<div class="math-block"><code>\text{Confidence}_{\text{hiệu lực}} = \text{Base Confidence} \times \max\left(0, 1 - \frac{|\text{predictedDays}|}{7.0}\right)</code></div>
+<p>   Mỗi ngày trễ hẹn, độ tin cậy bị khấu trừ tuyến tính, màu sắc huy hiệu badge trên UI tự động chuyển dần từ xanh lá <span class="math">\rightarrow</span> xanh dương <span class="math">\rightarrow</span> cam hổ phách.</p>
+<ol>
+<li><strong>Quy tắc 3 (Fallback Replacement):</strong> Khi các gợi ý quá hạn bị loại bỏ khiến danh sách còn ít hơn 5 sản phẩm, hệ thống tự động bù đắp các sản phẩm bán chạy đang hoạt động (Top-Selling Active) vào danh sách, đảm bảo khách hàng luôn nhận đủ 5 gợi ý chất lượng.</li>
+</ol>
+<hr/>
+<h2 id="5-nh-gi-phn-bin-chuyn-su-critical-audit--blind-spots">5. ĐÁNH GIÁ PHẢN BIỆN CHUYÊN SÂU (CRITICAL AUDIT &amp; BLIND SPOTS)</h2>
+<p><em>Phần này phân tích thẳng thắn, khách quan các giả định ngầm, thiên kiến kỹ thuật, những dữ liệu còn thiếu và các rủi ro tiềm ẩn mà nhóm phát triển cần nắm vững để trả lời tự tin trước hội đồng phản biện.</em></p>
+<h3 id="51-sai-lch-gia-kch-bn-hun-luyn-ai-v-csdl-thc-t">5.1. Sai lệch giữa Kịch bản Huấn luyện AI và CSDL Thực tế</h3>
+<div class="callout callout-warning" style="border-left: 4px solid #f59e0b; background-color: #fffbeb;">
+            <div class="callout-title" style="color: #f59e0b;"><strong>⚠️ Cảnh báo Rủi ro</strong></div>
+            <div class="callout-body"><strong>Điểm yếu cốt tử trong Pipeline Huấn luyện AI (Training Pipeline Mismatch)</strong></div>
+        </div>
+<ul>
+<li><strong>Thực tế:</strong> Trong file <code>ai-service/training/train_model.py</code> (hàm <code>load_purchase_history</code>), mã nguồn thực hiện câu truy vấn SQL lấy các cột: <code>c.category_code</code>, <code>c.parent_id</code>, <code>c.reminder_interval_days</code>.</li>
+<li><strong>Sự thật chưa nói ra:</strong> Trong toàn bộ các file migration Flyway của dự án (<code>V1</code> đến <code>V13</code>), bảng <code>categories</code> <strong>chỉ có 5 cột</strong>: <code>id</code>, <code>name</code>, <code>description</code>, <code>created_at</code>, <code>updated_at</code>. Các cột <code>category_code</code>, <code>parent_id</code>, <code>reminder_interval_days</code> <strong>hoàn toàn không tồn tại trong CSDL MySQL</strong>.</li>
+<li><strong>Hậu quả:</strong> Nếu chạy trực tiếp file <code>python training/train_model.py</code> kết nối vào database <code>smart_grocery</code>, script sẽ <strong>bị crash ngay lập tức</strong> do lỗi <code>Unknown column &#x27;c.category_code&#x27;</code>.</li>
+<li><strong>Cách hệ thống đang tạm vượt qua:</strong> </li>
+</ul>
+<ol>
+<li>Mô hình hiện tại được nạp từ file tĩnh đã huấn luyện sẵn (<code>ai-service/models/purchase_model.joblib</code>) dựa trên tập dữ liệu CSV tĩnh (<code>purchase_training_dataset.csv</code>).</li>
+<li>Tại Backend Java (<code>AiService.java</code>), lập trình viên đã phải viết các hàm bọc tạm thời (<code>resolveCategoryType</code>, <code>resolveReminderIntervalDays</code>) sử dụng chuỗi <code>if-else / contains</code> cứng trên tên danh mục và tên sản phẩm để &quot;bơm&quot; dữ liệu giả định sang cho Python FastAPI.</li>
+</ol>
+<ul>
+<li><strong>Khuyến nghị phản biện:</strong> Khi thuyết minh, nhóm cần thẳng thắn thừa nhận đây là giải pháp heuristic phân tách theo tầng và kiến nghị giải pháp chuẩn hóa bằng một file migration mới (<code>V14__add_category_metadata.sql</code>) để đồng bộ hoàn toàn giữa CSDL và mã huấn luyện AI.</li>
+</ul>
+<h3 id="52-cc-bng-csdl-b-treo-v-m-ngun-rc-dead-code">5.2. Các bảng CSDL bị &quot;treo&quot; và Mã nguồn rác (Dead Code)</h3>
+<ol>
+<li><strong>Bảng <code>subscriptions</code> bị bỏ rơi:</strong></li>
+</ol>
+<ul>
+<li>Trong migration <code>V7__subscription_loyalty_ai_schema.sql</code>, bảng <code>subscriptions</code> đã được tạo thành công với cấu trúc hoàn chỉnh (<code>interval_days</code>, <code>next_purchase_date</code>, <code>status</code>).</li>
+<li>Tuy nhiên, trong mã nguồn Backend Java, <strong>không có bất kỳ Entity (<code>Subscription.java</code>), Repository, Service hay Controller nào</strong> ánh xạ đến bảng này. Đây là một tính năng bị bỏ dở giữa chừng (Orphaned Schema).</li>
+</ul>
+<ol>
+<li><strong>Mã nguồn rác <code>adminStorage.js</code> trên Frontend:</strong></li>
+</ol>
+<ul>
+<li>Thư mục <code>frontend/src/admin/data/adminStorage.js</code> chứa 283 dòng code sử dụng <code>localStorage</code> cho quản lý User, Điểm và Danh mục từ giai đoạn thử nghiệm sơ khai.</li>
+<li>Hiện tại, toàn bộ các trang Admin (<code>AdminUsersPage</code>, <code>AdminProductsPage</code>, <code>AdminOrdersPage</code>, <code>AdminPointsPage</code>) đã chuyển sang gọi API Backend thật. File <code>adminStorage.js</code> không còn được import ở bất kỳ đâu nhưng vẫn tồn tại trong dự án, gây hiểu nhầm cho người đọc code rằng admin đang dùng dữ liệu ảo.</li>
+</ul>
+<h3 id="53-cng-thanh-ton-trc-tuyn-payment-gateways">5.3. Cổng Thanh toán Trực tuyến (Payment Gateways)</h3>
+<ul>
+<li><strong>Thực tế luồng Đặt hàng:</strong></li>
+<li>Hệ thống hiện tại đang sử dụng phương thức Thanh toán khi nhận hàng (COD) hoặc tự động giao hàng nội bộ (<code>autoDeliver = true</code>).</li>
+<li>Dự án chưa tích hợp cổng thanh toán trực tuyến qua bên thứ ba (VNPAY, MoMo, ZaloPay, Stripe).</li>
+<li>Đây là hướng mở rộng tất yếu khi hệ thống chuyển từ giai đoạn thử nghiệm/đồ án sang vận hành thương mại thực tế.</li>
+</ul>
+<h3 id="54-l-hng-vn-hnh--ri-ro-kin-trc-bo-mt">5.4. Lỗ hổng Vận hành &amp; Rủi ro Kiến trúc Bảo mật</h3>
+<ol>
+<li><strong>JWT Secret Key Fallback để lộ Plain Text:</strong></li>
+</ol>
+<ul>
+<li>Trong <code>application.properties</code>:</li>
+</ul>
+<p>     <code>grocery.app.jwtSecret=${GROCERY_JWT_SECRET:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}</code></p>
+<ul>
+<li>Nếu triển khai môi trường production mà DevOps quên khai báo biến môi trường <code>GROCERY_JWT_SECRET</code>, ứng dụng sẽ fallback về secret key mặc định đã bị công khai trên GitHub, tạo điều kiện cho kẻ tấn công giả mạo chữ ký JWT của Admin.</li>
+</ul>
+<ol>
+<li><strong>Thiếu cơ chế Thu hồi Token (Token Revocation / Blacklist):</strong></li>
+</ol>
+<ul>
+<li>JWT được thiết kế Stateless 100%. Khi một người dùng bấm &quot;Đăng xuất&quot; hoặc khi Admin vô hiệu hóa tài khoản (<code>enabled = FALSE</code>), JWT token cũ của user đó <strong>vẫn có hiệu lực hợp pháp</strong> cho đến khi hết hạn (24 giờ sau).</li>
+<li>Backend chỉ kiểm tra <code>user.isEnabled()</code> tại thời điểm đăng nhập (<code>UserDetailsServiceImpl</code>), các request sau đó mang token hợp lệ chỉ đi qua <code>AuthTokenFilter</code> (giải mã chữ ký token và nạp <code>SecurityContext</code>) mà không truy vấn lại DB xem tài khoản có vừa bị khóa hay không.</li>
+</ul>
+<h3 id="55-hn-ch-trong-chin-lc-kim-th-t-ng">5.5. Hạn chế trong Chiến lược Kiểm thử Tự động</h3>
+<ol>
+<li><strong>Kiểm thử Tích hợp Backend phụ thuộc CSDL Sống:</strong></li>
+</ol>
+<ul>
+<li>File <code>GroceryBackendApplicationTests.java</code> sử dụng annotation <code>@SpringBootTest</code>. Khi chạy <code>./mvnw test</code> trên máy cá nhân mà không bật container Docker MySQL, bài test này sẽ bị văng lỗi <code>IllegalStateException: Failed to load ApplicationContext</code> do Flyway không kết nối được DB cổng 3306.</li>
+<li>Dự án thiếu cấu hình Test Profile riêng biệt sử dụng CSDL nhúng trong bộ nhớ (H2 Database) hoặc thư viện <code>Testcontainers</code> để tự động kích hoạt MySQL tạm thời cho Unit Test độc lập.</li>
+</ul>
+<ol>
+<li><strong>Frontend hoàn toàn trống vắng Unit Test:</strong></li>
+</ol>
+<ul>
+<li>File <code>frontend/package.json</code> chỉ có các scripts: <code>dev</code>, <code>build</code>, <code>lint</code>, <code>preview</code>.</li>
+<li>Không có cấu hình Vitest, Jest hay React Testing Library. Mọi kiểm thử trên Frontend hiện phụ thuộc 100% vào việc kiểm thử thủ công (Manual E2E).</li>
+</ul>
+<hr/>
+<h2 id="6-l-trnh-nng-cp--hon-thin-actionable-roadmap">6. LỘ TRÌNH NÂNG CẤP &amp; HOÀN THIỆN (ACTIONABLE ROADMAP)</h2>
+<p>Dựa trên kết quả phản biện chuyên sâu, lộ trình hoàn thiện dự án được chia làm 3 giai đoạn rõ ràng:</p>
+<h3 id="giai-on-1-chun-b-trc-khi-bo-co--bo-v--n-1---2-ngy">Giai đoạn 1: Chuẩn bị Trước khi Báo cáo / Bảo vệ Đồ án (1 - 2 ngày)</h3>
+<ul>
+<li>☐ <strong>Xóa mã nguồn thừa:</strong> Xóa vĩnh viễn file <code>frontend/src/admin/data/adminStorage.js</code> để làm sạch cấu trúc thư mục.</li>
+<li>☐ <strong>Khắc phục test cục bộ:</strong> Bổ sung cấu hình <code>application-test.properties</code> hoặc mock DataSource trong <code>GroceryBackendApplicationTests</code> để lệnh <code>./mvnw test</code> chạy thành công 100% trên máy cá nhân mà không bắt buộc bật Docker MySQL.</li>
+<li>☐ <strong>Ẩn / Tạm khóa nút Quên mật khẩu:</strong> Trên trang Login, thay vì dẫn vào trang stub lỗi, hiển thị thông báo hướng dẫn liên hệ Admin hỗ trợ để tránh bị trừ điểm trải nghiệm người dùng (UX).</li>
+</ul>
+<h3 id="giai-on-2-nng-cp-nghip-v--bo-mt-1---2-tun">Giai đoạn 2: Nâng cấp Nghiệp vụ &amp; Bảo mật (1 - 2 tuần)</h3>
+<ul>
+<li>☐ <strong>Hoàn thiện Luồng Quên mật khẩu:</strong> Bổ sung <code>spring-boot-starter-mail</code>, bảng <code>password_reset_tokens</code> và API gửi link đặt lại mật khẩu an toàn.</li>
+<li>☐ <strong>Bảo mật Token với Redis:</strong> Cài đặt Redis lưu danh sách đen (Blacklist) các token đã đăng xuất hoặc token của tài khoản bị Admin khóa <code>enabled = false</code>.</li>
+<li>☐ <strong>Tích hợp Cổng thanh toán Sandbox:</strong> Tích hợp VNPAY hoặc MoMo Payment Gateway với IPN Webhook để hoàn tất luồng thanh toán trực tuyến thay vì chỉ có COD.</li>
+</ul>
+<h3 id="giai-on-3-ti-u-ha-tr-tu-nhn-to--m-rng-quy-m-1-thng">Giai đoạn 3: Tối ưu hóa Trí tuệ Nhân tạo &amp; Mở rộng Quy mô (1 tháng)</h3>
+<ul>
+<li>☐ <strong>Migration V14:</strong> Bổ sung các cột phân loại danh mục vào CSDL, cập nhật <code>train_model.py</code> để pipeline huấn luyện có thể chạy tự động theo lịch (Cron Job) lấy dữ liệu thực tế từ MySQL.</li>
+<li>☐ <strong>Mô hình AI Hybrid:</strong> Bổ sung thuật toán Lọc cộng tác (Collaborative Filtering) để gợi ý sản phẩm chéo (Cross-selling / &quot;Người mua món này cũng mua món kia&quot;), giải quyết bài toán Cold Start cho người dùng mới mà không cần dựa hoàn toàn vào Fallback tĩnh.</li>
+<li>☐ <strong>Triển khai Module Đặt hàng Định kỳ (Subscription):</strong> Viết JPA Entity, Service và Background Scheduled Task (<code>@Scheduled</code>) để tự động tạo đơn hàng lặp lại định kỳ cho các khách hàng đăng ký giao rau/sữa hàng tuần.</li>
+</ul>
+<hr/>
+<h2 id="7-tng-kt--kt-lun">7. TỔNG KẾT &amp; KẾT LUẬN</h2>
+<p>Trải qua quá trình nghiên cứu và phát triển nghiêm túc, dự án <strong>Smart Grocery E-commerce</strong> đã đạt được những thành tựu nổi bật:</p>
+<ol>
+<li><strong>Kiến trúc Vững chắc:</strong> Tách biệt rõ ràng giữa Client SPA (React 19), Core Backend (Spring Boot) và Inference Engine (Python FastAPI).</li>
+<li><strong>Giải quyết triệt để các bài toán khó của Hệ thống:</strong></li>
+</ol>
+<ul>
+<li>Xử lý đồng thời trong Kho hàng bằng Khóa bi quan (<code>SELECT FOR UPDATE</code>).</li>
+<li>Triệt tiêu lỗi nghẽn luồng JVM bằng Reactive WebClient Flux.</li>
+<li>Cơ chế Fallback đa tầng và Bộ 3 quy tắc xử lý trễ hạn đảm bảo tính sẵn sàng cao (High Availability).</li>
+</ul>
+<ol>
+<li><strong>Mức độ Sẵn sàng Triển khai Cao (Production-Ready DevOps):</strong> Toàn bộ hệ thống được container hóa qua Docker Compose, tích hợp GitHub Actions CI, công cụ sao lưu dữ liệu tự động và phát sóng Cloudflare Tunnel giúp việc thuyết trình và demo diễn ra mượt mà trên mọi thiết bị.</li>
+</ol>
+<p>Tài liệu này phản ánh trung thực 100% hiện trạng của dự án, vạch rõ cả những thành quả đã làm được lẫn những hạn chế kỹ thuật chưa nói ra, cung cấp cơ sở dữ liệu vững chắc để hoàn thiện báo cáo môn học, bảo vệ đồ án tốt nghiệp và tiếp tục phát triển hệ thống trong tương lai.</p>
+    </div>
+</div>
+</body>
+</html>

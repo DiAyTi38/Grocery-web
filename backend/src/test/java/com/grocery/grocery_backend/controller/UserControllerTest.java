@@ -129,6 +129,76 @@ class UserControllerTest {
                 .andExpect(status().isBadRequest());
     }
 
+    @Test
+    void updateProfile_IncludesAvatarAndDemographics() throws Exception {
+        User existing = sampleUser(1L, "alice", Role.ROLE_USER, true);
+        User saved = sampleUser(1L, "alice", Role.ROLE_USER, true);
+        saved.setFullName("Alice Nguyen");
+        saved.setPhone("0901234567");
+        saved.setAddress("12 Nguyen Trai");
+        saved.setAvatarUrl("data:image/png;base64,sampleAvatarData");
+        saved.setGender("Nữ");
+        saved.setBirthDate("1998-05-20");
+
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(existing));
+        when(userRepository.save(any(User.class))).thenReturn(saved);
+
+        mockMvc.perform(put("/api/users/profile")
+                        .with(user("alice").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {
+                                    "fullName":"Alice Nguyen",
+                                    "phone":"0901234567",
+                                    "address":"12 Nguyen Trai",
+                                    "avatarUrl":"data:image/png;base64,sampleAvatarData",
+                                    "gender":"Nữ",
+                                    "birthDate":"1998-05-20"
+                                }
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.fullName").value("Alice Nguyen"))
+                .andExpect(jsonPath("$.avatarUrl").value("data:image/png;base64,sampleAvatarData"))
+                .andExpect(jsonPath("$.gender").value("Nữ"))
+                .andExpect(jsonPath("$.birthDate").value("1998-05-20"));
+    }
+
+    @Test
+    void changePassword_Success() throws Exception {
+        User user = sampleUser(1L, "alice", Role.ROLE_USER, true);
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("oldPassword123", user.getPassword())).thenReturn(true);
+        when(passwordEncoder.encode("newPassword456")).thenReturn("encodedNewPassword");
+
+        mockMvc.perform(put("/api/users/change-password")
+                        .with(user("alice").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"oldPassword123","newPassword":"newPassword456"}
+                                """))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Đổi mật khẩu thành công!"));
+
+        verify(userRepository).save(user);
+    }
+
+    @Test
+    void changePassword_WrongCurrentPassword_ReturnsBadRequest() throws Exception {
+        User user = sampleUser(1L, "alice", Role.ROLE_USER, true);
+        when(userRepository.findByUsername("alice")).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrongPassword", user.getPassword())).thenReturn(false);
+
+        mockMvc.perform(put("/api/users/change-password")
+                        .with(user("alice").roles("USER"))
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("""
+                                {"currentPassword":"wrongPassword","newPassword":"newPassword456"}
+                                """))
+                .andExpect(status().isBadRequest());
+
+        verify(userRepository, never()).save(user);
+    }
+
     private User sampleUser(Long id, String username, Role role, boolean enabled) {
         return User.builder()
                 .id(id)

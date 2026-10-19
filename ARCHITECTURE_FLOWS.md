@@ -82,17 +82,74 @@
   4. Tạo bản ghi bảng `orders` (trạng thái PENDING) và các `order_items`.
   5. Xóa sạch giỏ hàng.
 
-## Luồng 6: Tích hợp AI Gợi ý mua hàng (AI Service) (Đã hoàn thành)
+## Luồng 6: Tích hợp AI Gợi ý mua hàng (AI Service) (Đã hoàn thành & Tối ưu hóa)
 - **Mục tiêu:** Gợi ý các sản phẩm đến chu kỳ cần mua tiếp theo (bổ sung kho) hoặc top sản phẩm bán chạy.
 - **Kiến trúc:** Microservices kết hợp.
-  - Java Backend (Port 8080): Chứa Core API, DB MySQL.
-  - Python FastAPI (Port 8000): Chạy Machine Learning Model.
+  - Java Backend (Port 8080): Chứa Core API, DB MySQL, WebClient Reactive Client.
+  - Python FastAPI (Port 8000): Chạy Machine Learning Model (Random Forest suy luận chu kỳ và độ tin cậy động).
 - **Quy trình:**
   1. User gọi `POST /api/ai/refresh` (Từ Frontend).
-  2. Java truy vấn toàn bộ lịch sử mua hàng (bảng `purchase_history`), gom nhóm theo sản phẩm. Lọc ra các sản phẩm mua từ 2 lần trở lên.
-  3. Dùng `WebClient` (CompletableFuture) gọi **song song** sang Python API (`/api/ai/predict`) cho từng sản phẩm để tránh nghẽn.
-  4. Lưu kết quả từ Python trả về vào DB (`ai_predictions`) và clear lịch sử cũ.
-- **Fallback (Chống lỗi):** Nếu Python Server sập, hoặc User không đủ data, Java sẽ tự động query TOP 5 sản phẩm bán chạy nhất từ `purchase_history` để trả về (Dạng Recommendation).
+  2. Java truy vấn toàn bộ lịch sử mua hàng (bảng `purchase_history`), gom nhóm theo sản phẩm. Lọc ra các sản phẩm mua từ 2 lần trở lên, trích xuất đặc trưng `categoryType` và `reminderIntervalDays` động từ danh mục.
+  3. **Gọi song song Non-blocking Reactive (`AiServiceClient.predictParallel`):**
+     - Sử dụng `Flux.fromIterable(requests).flatMap(..., concurrency = 8)` chạy trực tiếp trên Netty EventLoop.
+     - **Triệt tiêu lỗi Thread Starvation:** Tuyệt đối không dùng `CompletableFuture.supplyAsync()` vì ngầm định chiếm dụng `ForkJoinPool.commonPool()` của toàn bộ JVM cho tác vụ Blocking Network I/O.
+     - **Kiểm soát tải (Throttling):** Giới hạn tối đa 8 requests đồng thời sang Python FastAPI để tránh nghẽn socket.
+     - **Khả năng chịu lỗi (Fault-Tolerance):** Mỗi request có timeout 5s, nếu 1 sản phẩm gặp lỗi/timeout sẽ được bắt qua `onErrorResume` và bỏ qua, không làm gián đoạn các sản phẩm thành công còn lại.
+  4. Lưu kết quả từ Python trả về vào DB (`ai_predictions`) với ràng buộc `UNIQUE (user_id, product_id)` chống trùng lặp dữ liệu (Flyway V10), và clear/cập nhật bản ghi tương ứng.
+- **Kiểm soát Trạng thái Sản phẩm (Active/Inactive Enforcement):**
+  - *Luồng Cache (`getRecommendations`):* Query `findAllByUserIdOrderByConfidenceDesc` ràng buộc `p.active = TRUE`, đảm bảo sản phẩm đã ngừng kinh doanh (inactive) không bao giờ hiển thị trên UI gợi ý của người dùng.
+  - *Luồng Làm mới (`refreshPredictions`):* Lọc bỏ hoàn toàn các sản phẩm `p.active = false` trước khi phân nhóm và gửi sang AI, tránh lãng phí tài nguyên suy luận của mô hình cho mặt hàng không thể bán.
+
+- **Cơ chế Fallback Đa tầng (Cascading Fallback Architecture):**
+  Khi xảy ra sự cố hoặc người dùng thiếu dữ liệu, hệ thống tự động kích hoạt Fallback theo các cấp độ:
+
+  1. **Fallback Cấp Sản phẩm (Per-Product Fallback):**
+     - Áp dụng khi Python AI sập cho 1 mặt hàng cụ thể, hoặc sản phẩm chỉ mới mua 1 lần (< 2 đơn hàng).
+     - Hệ thống tự động chuyển sang thuật toán nội tại Java (`calculateNextReplenishmentDate`), tính toán chu kỳ dựa trên `reminderIntervalDays` động của danh mục (Ví dụ: Rau củ 3 ngày, Đồ khô 14 ngày).
+
+  2. **Fallback Cấp Hệ thống (System-Wide Fallback - `getFallbackTopSelling`):**
+     - **Điều kiện kích hoạt:**
+       - Người dùng mới chưa từng có lịch sử mua hàng (Cold Start tuyệt đối).
+       - Người dùng từng mua hàng nhưng toàn bộ mặt hàng đó đã bị vô hiệu hóa (`active = false`).
+       - Dịch vụ Python AI sập (`healthCheck() == false`) hoặc timeout mạng > 10s.
+     - **Quy trình xử lý 2 tầng (Two-Tier Cascading):**
+       - **Tầng 1 (Best-selling Active Products):**
+         - Truy vấn `purchase_history` bằng SQL Native tối ưu:
+           ```sql
+           SELECT ph.product_id, SUM(ph.quantity) AS total_qty
+           FROM purchase_history ph
+           INNER JOIN products p ON ph.product_id = p.id
+           WHERE p.active = 1
+           GROUP BY ph.product_id
+           ORDER BY total_qty DESC
+           LIMIT :limit
+           ```
+         - Ràng buộc `p.active = 1` được thực thi trực tiếp tại MySQL. Điều này giải quyết triệt để lỗi hụt số lượng (nếu lọc bằng Java sau khi `LIMIT 5`, danh sách có thể bị rớt xuống còn 2-3 sản phẩm hoặc 0 sản phẩm nếu các mặt hàng bán chạy nhất lịch sử đã ngừng bán).
+         - Kiểm tra an toàn lớp hai: `product != null && product.isActive()`.
+       - **Tầng 2 (Catalog Active Supplemental - Chống cạn kiệt Cold Start):**
+         - Nếu kết quả Tầng 1 trả về `< 5` sản phẩm (do hệ thống mới khởi tạo hoặc ít giao dịch), hệ thống tự động gọi `productRepository.findTop5ByActiveTrueOrderByIdDesc()` để lấy các sản phẩm active mới nhất trong kho hàng.
+         - Sử dụng cấu trúc `Set<Long> productIds` để **khử trùng lặp (Deduplication)**, lần lượt bù đắp các sản phẩm active mới vào danh sách cho đến khi đủ 5 sản phẩm.
+     - **Quy chuẩn DTO Fallback trả về:**
+       - `predictedNextDate = LocalDate.now().plusDays(7)`
+       - `predictedDays = 7.0`
+       - `confidence = 0.5` (Độ tin cậy mức trung bình)
+       - `type = "RECOMMENDATION"` (Phân biệt rõ với type `"REPLENISHMENT"` do AI cá nhân hóa).
+
+- **Bộ 3 Quy tắc Xử lý Hạn dùng & Quá hạn Dự báo (Staleness & Overdue Triple-Layer Policy):**
+  Khi ngày dự kiến mua lại (`predictedNextDate`) trôi về quá khứ so với thời gian thực tế (`LocalDate.now()`), hệ thống áp dụng cơ chế 3 tầng xử lý:
+
+  1. **Quy tắc 1 (Overdue Cut-off Threshold):**
+     - Thiết lập ngưỡng cắt `MAX_OVERDUE_DAYS = 7`.
+     - Nếu một sản phẩm đã quá hạn dự kiến vượt quá 7 ngày (`predictedDays < -7`), sản phẩm đó bị coi là **thói quen tiêu dùng đã chấm dứt (Churned Habit)** và bị loại bỏ hoàn toàn khỏi khối "Nhắc mua lại định kỳ". Không bao giờ hiển thị các con số ngày âm sâu phi lý (`-30 ngày`, `-60 ngày`) lên giao diện người dùng.
+
+  2. **Quy tắc 2 (Time-Decay Penalty on Confidence):**
+     - Xử lý trực tiếp tại tầng chuyển đổi DTO của Backend (`toDto`) để bảo đảm tính **thời gian thực tuyệt đối**:
+       $$\text{Confidence}_{\text{hiệu lực}} = \text{Base Confidence} \times \max\left(0, 1 - \frac{|\text{predictedDays}|}{7.0}\right)$$
+     - Khi sản phẩm trễ từ 1 đến 7 ngày, độ tin cậy bị khấu trừ tuyến tính theo từng ngày trôi qua (Badge UI tự động chuyển dần từ xanh lá $\rightarrow$ xanh dương $\rightarrow$ cam hổ phách).
+
+  3. **Quy tắc 3 (Fallback Replacement & Quản lý vòng đời):**
+     - Khi các sản phẩm quá hạn bị loại bỏ khiến danh sách gợi ý còn ít hơn 5 sản phẩm, hệ thống tự động kích hoạt Fallback Đa tầng để bù đắp các sản phẩm bán chạy đang hoạt động (Top-Selling Active) vào danh sách, đảm bảo khách hàng luôn nhận đủ 5 gợi ý chất lượng.
+     - **Theo dõi thời gian cập nhật:** Bổ sung cột `updated_at TIMESTAMP` trên bảng `ai_predictions` (Flyway Migration V11) để theo dõi chính xác mốc thời gian cập nhật dự đoán gần nhất của từng bản ghi.
 
 ## Luồng 7: Khách hàng thân thiết (Loyalty Module) (Đang triển khai)
 - **Mục tiêu:** Tích điểm mua hàng và thăng hạng thành viên.

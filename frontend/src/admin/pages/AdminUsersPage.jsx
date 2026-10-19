@@ -1,10 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
-import "../admin.css";
+import "../Admin.css";
 
 export default function AdminUsersPage() {
-  const navigate = useNavigate();
   const { user, token, getAdminUsers, updateAdminUserStatus } = useAuth();
 
   const [users, setUsers] = useState([]);
@@ -147,14 +145,6 @@ export default function AdminUsersPage() {
     <main className="admin-users-page">
       <header className="admin-users-header">
         <div>
-          <button
-            className="admin-users-back"
-            type="button"
-            onClick={() => navigate("/admin")}
-          >
-            ← Quay lại Dashboard
-          </button>
-
           <p className="admin-users-eyebrow">SMART GROCERY · ADMIN</p>
           <h1>👥 Quản lý tài khoản</h1>
           <p className="admin-users-subtitle">

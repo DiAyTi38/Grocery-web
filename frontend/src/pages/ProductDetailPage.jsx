@@ -1,38 +1,50 @@
 
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useAuth } from "../context/AuthContext";
+import { getProductById, addToCartApi } from "../services/api";
+import { getProductRealImage } from "../utils/productImages";
 
 function ProductDetailPage() {
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
+  const { token } = useAuth();
 
   const [quantity, setQuantity] = useState(1);
   const [product, setProduct] = useState(location.state?.product || null);
+  const [loading, setLoading] = useState(!location.state?.product);
+  const [adding, setAdding] = useState(false);
 
-  // Lấy sản phẩm được truyền từ HomePage
+  // Lấy sản phẩm từ state hoặc gọi API nếu vào thẳng link / F5
   useEffect(() => {
     if (location.state?.product) {
-      setProduct(location.state.product);
-
-      // Lưu tạm để khi F5 vẫn có dữ liệu
-      localStorage.setItem(
-        "smart-grocery-selected-product",
-        JSON.stringify(location.state.product),
-      );
-    } else {
-      // Nếu F5 trang chi tiết thì lấy lại sản phẩm
-      const savedProduct = localStorage.getItem(
-        "smart-grocery-selected-product",
-      );
-
-      if (savedProduct) {
-        const parsedProduct = JSON.parse(savedProduct);
-
-        if (String(parsedProduct.id) === String(id)) {
-          setProduct(parsedProduct);
-        }
-      }
+      const p = location.state.product;
+      setProduct({
+        ...p,
+        imageUrl: getProductRealImage(p.name, p.category) || p.imageUrl,
+      });
+      setLoading(false);
+    } else if (id) {
+      setLoading(true);
+      getProductById(id)
+        .then((data) => {
+          setProduct({
+            id: data.id,
+            name: data.name,
+            category: data.categoryName || "Khác",
+            price: Number(data.price) || 0,
+            oldPrice: data.price ? Math.round(Number(data.price) * 1.15) : null,
+            unit: data.unit || "Phần",
+            stock: data.availableQuantity ?? data.stockQuantity ?? 10,
+            description: data.description,
+            imageUrl: getProductRealImage(data.name, data.categoryName) || data.imageUrl,
+            emoji: "🛒",
+            color: "#e8f8f0",
+          });
+        })
+        .catch((err) => console.error("Lỗi tải chi tiết sản phẩm:", err))
+        .finally(() => setLoading(false));
     }
   }, [location.state, id]);
 
@@ -80,45 +92,24 @@ function ProductDetailPage() {
     setQuantity((prev) => Math.max(1, prev - 1));
   };
 
-  const handleAddToCart = () => {
-    const cartItem = {
-      ...product,
-      quantity,
-    };
-
-    const oldCart =
-      JSON.parse(localStorage.getItem("smart-grocery-cart")) || [];
-
-    const existingProduct = oldCart.find(
-      (item) => String(item.id) === String(product.id),
-    );
-
-    let newCart;
-
-    if (existingProduct) {
-      newCart = oldCart.map((item) =>
-        String(item.id) === String(product.id)
-          ? {
-              ...item,
-              quantity: item.quantity + quantity,
-            }
-          : item,
-      );
-    } else {
-      newCart = [...oldCart, cartItem];
+  const handleAddToCart = async () => {
+    if (!token) {
+      alert("Vui lòng đăng nhập để thêm sản phẩm vào giỏ hàng.");
+      navigate("/login");
+      return;
     }
 
-    localStorage.setItem(
-      "smart-grocery-cart",
-      JSON.stringify(newCart),
-    );
-
-    // Báo cho HomePage cập nhật số lượng giỏ hàng
-    window.dispatchEvent(new Event("cartUpdated"));
-
-    alert(
-      `Đã thêm ${quantity} ${product.unit || ""} ${product.name} vào giỏ hàng!`,
-    );
+    setAdding(true);
+    try {
+      await addToCartApi(token, product.id, quantity);
+      alert(
+        `Đã thêm ${quantity} ${product.unit || ""} ${product.name} vào giỏ hàng!`,
+      );
+    } catch (err) {
+      alert(`❌ Lỗi thêm vào giỏ: ${err.message}`);
+    } finally {
+      setAdding(false);
+    }
   };
 
   return (
@@ -157,10 +148,26 @@ function ProductDetailPage() {
           <div
             className="product-detail-image"
             style={{
-              backgroundColor: product.color || "#f5f5f5",
+              backgroundColor: product.color || "#f8fafc",
             }}
           >
-            <span>{product.emoji || "🛒"}</span>
+            {product.imageUrl ? (
+              <img
+                src={product.imageUrl}
+                alt={product.name}
+                className="detail-real-img"
+                referrerPolicy="no-referrer"
+                onError={(e) => {
+                  e.currentTarget.style.display = "none";
+                  if (e.currentTarget.nextElementSibling) {
+                    e.currentTarget.nextElementSibling.style.display = "block";
+                  }
+                }}
+              />
+            ) : null}
+            <span style={{ display: product.imageUrl ? "none" : "block" }}>
+              {product.emoji || "🛒"}
+            </span>
 
             {product.tag && (
               <div className="product-detail-tag">
@@ -382,6 +389,19 @@ function ProductDetailPage() {
           filter: drop-shadow(
             0 15px 15px rgba(0, 0, 0, 0.12)
           );
+        }
+
+        .detail-real-img {
+          width: 85%;
+          max-height: 420px;
+          object-fit: contain;
+          border-radius: 16px;
+          transition: transform 0.3s ease;
+          filter: drop-shadow(0 10px 25px rgba(0, 0, 0, 0.09));
+        }
+
+        .detail-real-img:hover {
+          transform: scale(1.03);
         }
 
         .product-detail-tag {

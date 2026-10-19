@@ -1,4 +1,6 @@
-const API_BASE_URL = "http://localhost:8080/api";
+export const API_BASE_URL =
+  import.meta.env.VITE_API_BASE_URL || "/api";
+
 
 export async function apiRequest(path, options = {}) {
   const response = await fetch(`${API_BASE_URL}${path}`, {
@@ -28,4 +30,138 @@ export async function apiRequest(path, options = {}) {
   }
 
   return data;
+}
+
+// ======================================================
+// CATALOG APIs
+// ======================================================
+
+export async function getProducts() {
+  return apiRequest("/products");
+}
+
+export async function getProductById(id) {
+  return apiRequest(`/products/${id}`);
+}
+
+export async function getCategories() {
+  return apiRequest("/categories");
+}
+
+// ======================================================
+// CART APIs (Yêu cầu JWT Token)
+// ======================================================
+
+export async function getCart(token) {
+  if (!token) return { items: [], totalAmount: 0 };
+  return apiRequest("/cart", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function addToCartApi(token, productId, quantity = 1) {
+  return apiRequest("/cart/items", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ productId, quantity }),
+  });
+}
+
+export async function updateCartItemApi(token, itemId, quantity) {
+  return apiRequest(`/cart/items/${itemId}`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ quantity }),
+  });
+}
+
+export async function removeCartItemApi(token, itemId) {
+  return apiRequest(`/cart/items/${itemId}`, {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function clearCartApi(token) {
+  return apiRequest("/cart", {
+    method: "DELETE",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// ======================================================
+// ORDER & CHECKOUT APIs
+// ======================================================
+
+export async function checkoutOrderApi(token, autoDeliver = false) {
+  const url = autoDeliver
+    ? "/orders/checkout?autoDeliver=true"
+    : "/orders/checkout";
+  return apiRequest(url, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getMyOrdersApi(token) {
+  return apiRequest("/orders", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getAllOrdersAdminApi(token) {
+  return apiRequest("/orders/admin", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function updateOrderStatusAdminApi(token, orderId, status) {
+  return apiRequest(`/orders/${orderId}/status`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ status }),
+  });
+}
+
+export async function receiveOrderApi(token, orderId) {
+  return apiRequest(`/orders/${orderId}/receive`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function cancelOrderApi(token, orderId) {
+  return apiRequest(`/orders/${orderId}/cancel`, {
+    method: "PUT",
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+// ======================================================
+// LOYALTY & AI APIs
+// ======================================================
+
+export async function getMyLoyaltyApi(token) {
+  return apiRequest("/loyalty/me", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getLoyaltyTransactionsApi(token) {
+  return apiRequest("/loyalty/transactions", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function getAiRecommendationsApi(token) {
+  return apiRequest("/ai/recommendations", {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+}
+
+export async function refreshAiPredictionsApi(token) {
+  return apiRequest("/ai/refresh", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${token}` },
+  });
 }
