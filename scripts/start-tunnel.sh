@@ -23,8 +23,9 @@ if ! docker compose ps frontend | grep -q "Up"; then
     docker compose up -d
 fi
 
-# 3. Khởi động container tunnel
+# 3. Khởi động container tunnel (xóa container cũ để tránh session expired và log cũ)
 echo "⏳ Đang kết nối đường hầm bảo mật Cloudflare..."
+docker compose --profile tunnel rm -sf tunnel >/dev/null 2>&1
 docker compose --profile tunnel up -d tunnel >/dev/null 2>&1
 
 # 4. Trích xuất URL công khai từ logs (chờ tối đa 20 giây)
